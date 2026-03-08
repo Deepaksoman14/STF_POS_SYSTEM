@@ -1074,3 +1074,102 @@ select {
   position: relative;
   z-index: 1;
 }
+
+/* POS UX upgrades */
+.pos-workspace {
+  align-items: start;
+}
+
+.pos-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pos-quick-stats {
+  min-width: 120px;
+  text-align: right;
+}
+
+.pos-search-wrap {
+  margin-top: 12px;
+}
+
+.pos-product-grid {
+  margin-top: 12px;
+}
+
+.pos-product-card {
+  gap: 8px;
+}
+
+.pos-bill-card {
+  position: sticky;
+  top: 12px;
+}
+
+.pos-line-item {
+  grid-template-columns: 1fr 130px auto;
+  align-items: center;
+}
+
+.qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.qty-stepper button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}
+
+.qty-stepper span {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.pos-checkout-config {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.pos-checkout-config label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.pos-total-line {
+  grid-template-columns: 1fr auto;
+}
+
+.grand-total {
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+
+@media (max-width: 900px) {
+  .pos-header-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pos-quick-stats {
+    text-align: left;
+  }
+
+  .pos-bill-card {
+    position: static;
+  }
+
+  .pos-line-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
