@@ -6,6 +6,11 @@ import DataTable from "../../../components/ui/DataTable";
 import { useI18n } from "../../../i18n/useI18n";
 import { formatCurrency, getBusinessProfile } from "../../../utils/formatters";
 
+function formatMetric(value, formatter) {
+  if (value === null || value === undefined) return "--";
+  return formatter ? formatter(value) : String(value);
+}
+
 function DashboardPage() {
   const profile = getBusinessProfile();
   const { t } = useI18n();
@@ -75,36 +80,36 @@ function DashboardPage() {
       {loading && <p className="muted">{t("dashboard.loading")}</p>}
       {!loading && summary && (
         <>
-          <div className="grid-4">
+          <div className="grid-6">
             <StatCard
-              title={t("dashboard.todaySales")}
-              value={formatCurrency(Number(summary.todaySales), profile.currency, profile.locale)}
-              hint={t("dashboard.liveFromBackend")}
-            />
-            <StatCard title={t("dashboard.billsCreated")} value={String(summary.billsCount)} hint={t("dashboard.today")} />
-            <StatCard title={t("dashboard.lowStockItems")} value={String(summary.lowStockItems)} hint={t("dashboard.atOrBelow")} />
-            <StatCard
-              title={t("dashboard.outstandingCredit")}
-              value={formatCurrency(Number(summary.creditOutstanding), profile.currency, profile.locale)}
-              hint={t("dashboard.acrossCustomers")}
-            />
-          </div>
-
-          <div className="grid-3">
-            <StatCard
-              title="Average Bill Value"
-              value={formatCurrency(Number(summary.avgBillValue), profile.currency, profile.locale)}
-              hint="Today"
+              title="Total Sales"
+              value={formatMetric(summary.totalSales, (value) => formatCurrency(Number(value), profile.currency, profile.locale))}
+              hint="All time"
             />
             <StatCard
-              title="Recent Bills"
-              value={String(summary.recentBills?.length || 0)}
-              hint="Last 20 checkouts"
+              title="Total Profit"
+              value={formatMetric(summary.totalProfit, (value) => formatCurrency(Number(value), profile.currency, profile.locale))}
+              hint="Needs cost price"
             />
             <StatCard
-              title="Latest Bill"
-              value={summary.recentBills?.[0]?.bill_no ? `#${summary.recentBills[0].bill_no}` : "-"}
-              hint={summary.recentBills?.[0]?.payment_mode ? String(summary.recentBills[0].payment_mode).toUpperCase() : "No sales"}
+              title="Total Quantity Sold"
+              value={formatMetric(summary.totalQtySold)}
+              hint="All time"
+            />
+            <StatCard
+              title="Total Invoices"
+              value={formatMetric(summary.totalInvoices)}
+              hint="All time"
+            />
+            <StatCard
+              title="Daily Average Sales"
+              value={formatMetric(summary.dailyAverageSales, (value) => formatCurrency(Number(value), profile.currency, profile.locale))}
+              hint="Across active days"
+            />
+            <StatCard
+              title="Profit Margin %"
+              value={formatMetric(summary.profitMargin, (value) => `${Number(value).toFixed(2)}%`)}
+              hint="Needs cost price"
             />
           </div>
 

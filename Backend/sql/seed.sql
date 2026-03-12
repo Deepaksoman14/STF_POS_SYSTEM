@@ -1,6 +1,6 @@
 -- Run this after creating the first owner account and replace business_id below.
--- INSERT INTO product (business_id, sku, name, category, batch_no, composition, mrp, sale_price, stock_qty, reorder_level)
+-- INSERT INTO product (business_id, sku, name, category, batch_no, composition, cost_price, sale_price, stock_qty, reorder_level)
 -- VALUES
--- ('<business_uuid>', 'UREA-50', 'Urea 50kg', 'Nitrogen', 'U-260301', '46-0-0', 300, 290, 120, 40),
--- ('<business_uuid>', 'DAP-50', 'DAP 50kg', 'Phosphate', 'D-260220', '18-46-0', 1400, 1350, 80, 35),
--- ('<business_uuid>', 'NPK-191919', 'NPK 19:19:19', 'NPK', 'N-260215', '19-19-19', 1500, 1450, 35, 20);
+-- ('<business_uuid>', 'UREA-50', 'Urea 50kg', 'Nitrogen', 'U-260301', '46-0-0', 220, 290, 120, 40),
+-- ('<business_uuid>', 'DAP-50', 'DAP 50kg', 'Phosphate', 'D-260220', '18-46-0', 1000, 1350, 80, 35),
+-- ('<business_uuid>', 'NPK-191919', 'NPK 19:19:19', 'NPK', 'N-260215', '19-19-19', 1200, 1450, 35, 20);

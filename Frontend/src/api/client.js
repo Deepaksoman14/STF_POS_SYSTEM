@@ -1,9 +1,21 @@
 import axios from "axios";
 
+const SESSION_NOTICE_KEY = "sessionNotice";
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
   timeout: 15000
 });
+
+function handleSessionExpiry() {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("authUser");
+  sessionStorage.setItem(SESSION_NOTICE_KEY, "Your session expired. Please login again.");
+
+  if (window.location.pathname !== "/") {
+    window.location.assign("/");
+  }
+}
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
@@ -12,6 +24,27 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const message = String(error?.response?.data?.message || "").toLowerCase();
+    const hasToken = Boolean(localStorage.getItem("accessToken"));
+
+    const isExpiredToken = status === 401 && hasToken && (
+      message.includes("expired") ||
+      message.includes("invalid or expired token") ||
+      message.includes("invalid token")
+    );
+
+    if (isExpiredToken) {
+      handleSessionExpiry();
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export function extractApiError(error, fallbackMessage = "Something went wrong") {
   if (error?.response?.data?.message) {
@@ -25,4 +58,5 @@ export function extractApiError(error, fallbackMessage = "Something went wrong")
   return fallbackMessage;
 }
 
+export { SESSION_NOTICE_KEY };
 export default api;

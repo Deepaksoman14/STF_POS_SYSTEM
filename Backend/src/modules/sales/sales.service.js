@@ -11,7 +11,7 @@ export async function createSale(businessId, payload) {
 
     for (const line of payload.items) {
       const productRes = await client.query(
-        "SELECT id, sale_price, stock_qty FROM product WHERE id = $1 AND business_id = $2 FOR UPDATE",
+        "SELECT id, sale_price, stock_qty, cost_price FROM product WHERE id = $1 AND business_id = $2 FOR UPDATE",
         [line.productId, businessId]
       );
 
@@ -47,15 +47,17 @@ export async function createSale(businessId, payload) {
 
     for (const line of payload.items) {
       const productRes = await client.query(
-        "SELECT sale_price, stock_qty FROM product WHERE id = $1 AND business_id = $2 FOR UPDATE",
+        "SELECT sale_price, stock_qty, cost_price FROM product WHERE id = $1 AND business_id = $2 FOR UPDATE",
         [line.productId, businessId]
       );
       const product = productRes.rows[0];
+      const sellingPrice = Number(product.sale_price);
+      const costPrice = Number(product.cost_price || 0);
 
       await client.query(
-        `INSERT INTO sale_item (sale_id, product_id, qty, unit_price, line_total)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [sale.id, line.productId, line.qty, product.sale_price, Number(product.sale_price) * line.qty]
+        `INSERT INTO sale_item (sale_id, product_id, qty, selling_price, selling_price_total, cost_price, cost_price_total)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [sale.id, line.productId, line.qty, sellingPrice, sellingPrice * line.qty, costPrice, costPrice * line.qty]
       );
 
       await client.query(

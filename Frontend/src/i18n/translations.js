@@ -40,15 +40,7 @@ export const translations = {
     dashboard: {
       title: "Dashboard",
       summary: "operational summary",
-      loading: "Loading summary...",
-      todaySales: "Today Sales",
-      liveFromBackend: "Live from backend",
-      billsCreated: "Bills Created",
-      today: "Today",
-      lowStockItems: "Low Stock Items",
-      atOrBelow: "At or below reorder",
-      outstandingCredit: "Outstanding Credit",
-      acrossCustomers: "Across customers"
+      loading: "Loading summary..."
     },
     products: {
       title: "Product Catalog",
@@ -168,15 +160,7 @@ export const translations = {
     dashboard: {
       title: "Dashboard",
       summary: "operational summary",
-      loading: "Loading summary...",
-      todaySales: "Today Sales",
-      liveFromBackend: "Live from backend",
-      billsCreated: "Bills Created",
-      today: "Today",
-      lowStockItems: "Low Stock Items",
-      atOrBelow: "At or below reorder",
-      outstandingCredit: "Outstanding Credit",
-      acrossCustomers: "Across customers"
+      loading: "Loading summary..."
     },
     products: {
       title: "Product Catalog",
