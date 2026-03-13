@@ -31,11 +31,14 @@ export const translations = {
       createOwner: "Create owner account",
       registerTitle: "Create Owner Account",
       registerSubtitle: "Submit your business details for owner approval before login access.",
+      businessProfile: "Business Profile",
       businessName: "Business Name",
       ownerName: "Owner Full Name",
       createAccount: "Create Account",
       creating: "Creating...",
-      alreadyHaveAccount: "Already have an account?"
+      alreadyHaveAccount: "Already have an account?",
+      adminNoticeTitle: "Admin account detected",
+      adminNoticeBody: "Admins can access all businesses. Business profile is set to the default and can be changed only when impersonating a business."
     },
     dashboard: {
       title: "Dashboard",
@@ -60,17 +63,21 @@ export const translations = {
     },
     customers: {
       title: "Customers",
-      subtitle: "Customer master and credit visibility.",
+      subtitle: "Customer master and contact visibility.",
       addCustomer: "Add Customer",
       customerName: "Customer Name",
-      mobile: "Mobile",
-      village: "Village",
-      creditDue: "Credit Due",
+      customer: "Customer",
+      address: "Address",
+      mobile: "Mobile Number",
+      email: "Email",
+      enterName: "Enter name",
+      enterAddress: "Enter address",
+      enterMobile: "Enter mobile number",
+      enterEmail: "Enter email",
       createCustomer: "Create Customer",
       saving: "Saving...",
       loading: "Loading customers...",
-      success: "Customer created successfully.",
-      customer: "Customer"
+      success: "Customer created successfully."
     },
     inventory: {
       title: "Inventory",
@@ -95,12 +102,20 @@ export const translations = {
       computed: "Computed from net totals"
     },
     settings: {
-      title: "Settings",
+      title: "Profile Info",
+      subtitle: "Business profile and preferences for this device.",
+      profileInfo: "Profile Info",
       businessProfile: "Business Profile",
-      name: "Name",
+      profileHint: "Business profile is selected at signup and cannot be changed here.",
+      displaySettings: "Display Settings",
+      businessName: "Business Name",
       currency: "Currency",
-      locale: "Locale",
-      futureOnboarding: "Future onboarding: add new profile and product schema under domain config."
+      locale: "Language",
+      save: "Save changes",
+      reset: "Reset to defaults",
+      saved: "Settings saved locally.",
+      resetDone: "Defaults restored.",
+      localOnly: "Changes are saved in this browser only."
     },
     pos: {
       title: "Billing Counter",
@@ -151,16 +166,37 @@ export const translations = {
       createOwner: "Create owner account",
       registerTitle: "Create Owner Account",
       registerSubtitle: "Submit your business details for owner approval before login access.",
+      businessProfile: "Business Profile",
       businessName: "Business Name",
       ownerName: "Owner Full Name",
       createAccount: "Create Account",
       creating: "Creating...",
-      alreadyHaveAccount: "Already have an account?"
+      alreadyHaveAccount: "Already have an account?",
+      adminNoticeTitle: "Admin account detected",
+      adminNoticeBody: "Admins can access all businesses. Business profile is set to the default and can be changed only when impersonating a business."
     },
     dashboard: {
       title: "Dashboard",
       summary: "operational summary",
       loading: "Loading summary..."
+    },
+    customers: {
+      title: "Customers",
+      subtitle: "Customer master and contact visibility.",
+      addCustomer: "Add Customer",
+      customerName: "Customer Name",
+      customer: "Customer",
+      address: "Address",
+      mobile: "Mobile Number",
+      email: "Email",
+      enterName: "Enter name",
+      enterAddress: "Enter address",
+      enterMobile: "Enter mobile number",
+      enterEmail: "Enter email",
+      createCustomer: "Create Customer",
+      saving: "Saving...",
+      loading: "Loading customers...",
+      success: "Customer created successfully."
     },
     products: {
       title: "Product Catalog",
@@ -177,20 +213,6 @@ export const translations = {
       saving: "Saving...",
       loading: "Loading products...",
       success: "Product created successfully."
-    },
-    customers: {
-      title: "Customers",
-      subtitle: "Customer master and credit visibility.",
-      addCustomer: "Add Customer",
-      customerName: "Customer Name",
-      mobile: "Mobile",
-      village: "Village",
-      creditDue: "Credit Due",
-      createCustomer: "Create Customer",
-      saving: "Saving...",
-      loading: "Loading customers...",
-      success: "Customer created successfully.",
-      customer: "Customer"
     },
     inventory: {
       title: "Inventory",
@@ -215,12 +237,20 @@ export const translations = {
       computed: "Computed from net totals"
     },
     settings: {
-      title: "Settings",
+      title: "Profile Info",
+      subtitle: "Business profile and preferences for this device.",
+      profileInfo: "Profile Info",
       businessProfile: "Business Profile",
-      name: "Name",
+      profileHint: "Business profile is selected at signup and cannot be changed here.",
+      displaySettings: "Display Settings",
+      businessName: "Business Name",
       currency: "Currency",
-      locale: "Locale",
-      futureOnboarding: "Future onboarding: add new profile and product schema under domain config."
+      locale: "Language",
+      save: "Save changes",
+      reset: "Reset to defaults",
+      saved: "Settings saved locally.",
+      resetDone: "Defaults restored.",
+      localOnly: "Changes are saved in this browser only."
     },
     pos: {
       title: "Billing Counter",

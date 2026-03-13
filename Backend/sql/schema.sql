@@ -12,6 +12,7 @@ CREATE TABLE app_user (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_id UUID NOT NULL DEFAULT gen_random_uuid(),
   business_name VARCHAR(120) NOT NULL,
+  business_profile_id VARCHAR(40) NOT NULL DEFAULT 'fertilizer',
   full_name VARCHAR(120) NOT NULL,
   email VARCHAR(120) UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
@@ -23,6 +24,7 @@ CREATE TABLE app_user (
 CREATE TABLE signup_request (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_name VARCHAR(120) NOT NULL,
+  business_profile_id VARCHAR(40) NOT NULL DEFAULT 'fertilizer',
   full_name VARCHAR(120) NOT NULL,
   email VARCHAR(120) UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
@@ -54,9 +56,9 @@ CREATE TABLE customer (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_id UUID NOT NULL,
   name VARCHAR(120) NOT NULL,
-  mobile VARCHAR(15) NOT NULL,
-  village VARCHAR(120) NOT NULL,
-  credit_due NUMERIC(12,2) NOT NULL DEFAULT 0,
+  address VARCHAR(200) NOT NULL DEFAULT '',
+  mobile VARCHAR(20) NOT NULL DEFAULT '',
+  email VARCHAR(120) NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

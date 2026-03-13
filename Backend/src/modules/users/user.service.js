@@ -10,9 +10,20 @@ function normalizeEmail(email) {
 
 export async function listUsers() {
   const result = await query(
-    `SELECT id, business_name, full_name, email, role, is_active, created_at
+    `SELECT id, business_name, business_profile_id, business_id, full_name, email, role, is_active, created_at
      FROM app_user
      ORDER BY created_at DESC`
+  );
+
+  return result.rows;
+}
+
+export async function listBusinesses() {
+  const result = await query(
+    `SELECT business_id, business_name, business_profile_id, MIN(created_at) AS created_at
+     FROM app_user
+     GROUP BY business_id, business_name, business_profile_id
+     ORDER BY business_name`
   );
 
   return result.rows;
@@ -61,7 +72,7 @@ export async function updateUserAccess(userId, payload, actor) {
     `UPDATE app_user
      SET role = $2, is_active = $3
      WHERE id = $1
-     RETURNING id, business_name, full_name, email, role, is_active, created_at`,
+     RETURNING id, business_name, business_profile_id, business_id, full_name, email, role, is_active, created_at`,
     [userId, nextRole, nextIsActive]
   );
 

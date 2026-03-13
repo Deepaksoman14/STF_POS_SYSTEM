@@ -2,8 +2,18 @@ import { z } from "zod";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { createSale, listSales } from "./sales.service.js";
 
+const optionalString = z.string().trim().optional().default("");
+
+const customerInlineSchema = z.object({
+  name: z.string().trim().min(2).optional(),
+  address: optionalString,
+  mobile: optionalString,
+  email: optionalString
+});
+
 const createSaleSchema = z.object({
   customerId: z.string().uuid().nullable().optional(),
+  customer: customerInlineSchema.optional(),
   paymentMode: z.enum(["cash", "upi", "card", "credit"]),
   discount: z.coerce.number().nonnegative().default(0),
   notes: z.string().optional().default(""),

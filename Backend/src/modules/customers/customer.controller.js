@@ -2,11 +2,17 @@ import { z } from "zod";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { createCustomer, deleteCustomer, listCustomers, updateCustomer } from "./customer.service.js";
 
+const optionalString = z.string().trim().optional().default("");
+
 const customerSchema = z.object({
-  name: z.string().min(2),
-  mobile: z.string().min(10).max(15),
-  village: z.string().min(2),
-  creditDue: z.coerce.number().nonnegative().default(0)
+  name: z.string().trim().min(2),
+  address: optionalString,
+  mobile: optionalString.refine((value) => value === "" || (value.length >= 5 && value.length <= 15), {
+    message: "Mobile number must be 5 to 15 characters"
+  }),
+  email: optionalString.refine((value) => value === "" || z.string().email().safeParse(value).success, {
+    message: "Invalid email address"
+  })
 });
 
 const paramsSchema = z.object({

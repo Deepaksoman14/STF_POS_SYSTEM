@@ -1,7 +1,7 @@
 import { query } from "../../db/index.js";
 
 export async function getSummary(businessId) {
-  const [todaySalesRes, lowStock, outstanding, recentBills, totalsRes, qtyRes, dailyAvgRes, profitRes] = await Promise.all([
+  const [todaySalesRes, lowStock, recentBills, totalsRes, qtyRes, dailyAvgRes, profitRes] = await Promise.all([
     query(
       `SELECT COALESCE(SUM(net_total), 0)::numeric(12,2) AS today_sales,
               COUNT(*)::int AS bills_count
@@ -13,12 +13,6 @@ export async function getSummary(businessId) {
       `SELECT COUNT(*)::int AS low_stock
        FROM product
        WHERE business_id = $1 AND stock_qty <= reorder_level AND is_active = true`,
-      [businessId]
-    ),
-    query(
-      `SELECT COALESCE(SUM(credit_due), 0)::numeric(12,2) AS credit_due
-       FROM customer
-       WHERE business_id = $1`,
       [businessId]
     ),
     query(
@@ -81,7 +75,6 @@ export async function getSummary(businessId) {
     todaySales: todaySalesRes.rows[0].today_sales,
     billsCount: todaySalesRes.rows[0].bills_count,
     lowStockItems: lowStock.rows[0].low_stock,
-    creditOutstanding: outstanding.rows[0].credit_due,
     avgBillValue: billsCount > 0 ? (todaySales / billsCount).toFixed(2) : "0.00",
     recentBills: recentBills.rows,
     totalSales: totalsRes.rows[0].total_sales,

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { extractApiError } from "../../../api/client";
+import { fetchCustomers } from "../../../api/customerApi";
 import { fetchProducts } from "../../../api/productApi";
 import { createSale } from "../../../api/salesApi";
 import { useI18n } from "../../../i18n/useI18n";
@@ -13,6 +14,7 @@ function POSPage() {
   const { user } = useAuthStore();
   const { cart, addToCart, updateQty, clearCart } = usePosStore();
   const [products, setProducts] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -21,17 +23,23 @@ function POSPage() {
   const [paymentMode, setPaymentMode] = useState("cash");
   const [discount, setDiscount] = useState(0);
   const [notes, setNotes] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [customerMenuOpen, setCustomerMenuOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
-    async function loadProducts() {
+    async function loadInitial() {
       try {
-        const data = await fetchProducts();
+        const [productsData, customersData] = await Promise.all([
+          fetchProducts(),
+          fetchCustomers()
+        ]);
         if (!mounted) return;
 
         setProducts(
-          data.map((item) => ({
+          productsData.map((item) => ({
             id: item.id,
             sku: item.sku,
             name: item.name,
@@ -39,9 +47,19 @@ function POSPage() {
             salePrice: Number(item.sale_price)
           }))
         );
+
+        setCustomers(
+          customersData.map((item) => ({
+            id: item.id,
+            name: item.name,
+            address: item.address || "",
+            mobile: item.mobile || "",
+            email: item.email || ""
+          }))
+        );
       } catch (err) {
         if (mounted) {
-          setError(extractApiError(err, "Failed to load products"));
+          setError(extractApiError(err, "Failed to load POS data"));
         }
       } finally {
         if (mounted) {
@@ -50,7 +68,7 @@ function POSPage() {
       }
     }
 
-    loadProducts();
+    loadInitial();
 
     return () => {
       mounted = false;
@@ -72,6 +90,19 @@ function POSPage() {
       product.name.toLowerCase().includes(term) || product.sku.toLowerCase().includes(term)
     );
   }, [products, searchTerm]);
+
+  const customerMatches = useMemo(() => {
+    const term = customerName.trim().toLowerCase();
+    if (!term) return customers.slice(0, 6);
+
+    return customers
+      .filter((customer) => (
+        customer.name.toLowerCase().includes(term) ||
+        customer.mobile.toLowerCase().includes(term) ||
+        customer.email.toLowerCase().includes(term)
+      ))
+      .slice(0, 6);
+  }, [customerName, customers]);
 
   const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.salePrice * item.qty, 0), [cart]);
   const safeDiscount = Math.min(Number(discount) || 0, subtotal);
@@ -97,6 +128,61 @@ function POSPage() {
     updateQty(item.id, item.qty - 1);
   }
 
+  function handleCustomerInputChange(value) {
+    setCustomerName(value);
+
+    const normalized = value.trim().toLowerCase();
+    const exactMatch = customers.find((customer) => (
+      customer.name.trim().toLowerCase() === normalized ||
+      customer.mobile.trim().toLowerCase() === normalized ||
+      customer.email.trim().toLowerCase() === normalized
+    ));
+
+    if (exactMatch) {
+      setSelectedCustomerId(exactMatch.id);
+      setCustomerName(exactMatch.name);
+      setCustomerMenuOpen(false);
+      return;
+    }
+
+    setSelectedCustomerId("");
+    if (!customerMenuOpen) {
+      setCustomerMenuOpen(true);
+    }
+  }
+
+  function selectCustomer(customer) {
+    setCustomerName(customer.name);
+    setSelectedCustomerId(customer.id);
+    setCustomerMenuOpen(false);
+  }
+
+  async function refreshCustomers() {
+    const customersData = await fetchCustomers();
+    setCustomers(
+      customersData.map((item) => ({
+        id: item.id,
+        name: item.name,
+        address: item.address || "",
+        mobile: item.mobile || "",
+        email: item.email || ""
+      }))
+    );
+  }
+
+  async function refreshProducts() {
+    const refreshed = await fetchProducts();
+    setProducts(
+      refreshed.map((item) => ({
+        id: item.id,
+        sku: item.sku,
+        name: item.name,
+        stock: item.stock_qty,
+        salePrice: Number(item.sale_price)
+      }))
+    );
+  }
+
   async function handleCheckout() {
     if (cart.length === 0 || !user) return;
 
@@ -113,23 +199,22 @@ function POSPage() {
         items: cart.map((item) => ({ productId: item.id, qty: item.qty }))
       };
 
+      if (selectedCustomerId) {
+        payload.customerId = selectedCustomerId;
+      } else if (customerName.trim()) {
+        payload.customer = { name: customerName.trim() };
+      }
+
       const sale = await createSale(payload);
       const billNo = sale.bill_no || sale.bill_no === 0 ? sale.bill_no : sale.id;
       setSuccessText(t("pos.saleCreated", { billNo }));
       clearCart();
       setDiscount(0);
       setNotes("");
+      setCustomerName("");
+      setSelectedCustomerId("");
 
-      const refreshed = await fetchProducts();
-      setProducts(
-        refreshed.map((item) => ({
-          id: item.id,
-          sku: item.sku,
-          name: item.name,
-          stock: item.stock_qty,
-          salePrice: Number(item.sale_price)
-        }))
-      );
+      await Promise.all([refreshProducts(), refreshCustomers()]);
     } catch (err) {
       setError(extractApiError(err, "Checkout failed"));
     } finally {
@@ -211,6 +296,36 @@ function POSPage() {
         ))}
 
         <div className="pos-checkout-config">
+          <label>Customer Name</label>
+          <div className="combo-box">
+            <input
+              type="text"
+              placeholder="Search name, mobile, or email"
+              value={customerName}
+              onChange={(event) => handleCustomerInputChange(event.target.value)}
+              onFocus={() => setCustomerMenuOpen(true)}
+              onBlur={() => setTimeout(() => setCustomerMenuOpen(false), 120)}
+            />
+            {customerMenuOpen && customerMatches.length > 0 && (
+              <div className="combo-menu">
+                {customerMatches.map((customer) => (
+                  <button
+                    key={customer.id}
+                    type="button"
+                    className="combo-option"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      selectCustomer(customer);
+                    }}
+                  >
+                    <span className="combo-title">{customer.name}</span>
+                    <span className="combo-sub">{customer.mobile || "-"} • {customer.email || "-"}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <label>Payment Mode</label>
           <select value={paymentMode} onChange={(event) => setPaymentMode(event.target.value)}>
             <option value="cash">Cash</option>

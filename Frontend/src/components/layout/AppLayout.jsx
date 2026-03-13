@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { fetchBusinesses } from "../../api/userApi";
 import { useAuthStore } from "../../store/authStore";
 import { getBusinessProfile } from "../../utils/formatters";
 import { canAccess, routeConfig } from "../../app/permissions";
 import { useI18n } from "../../i18n/useI18n";
+
+const IMPERSONATION_ID_KEY = "impersonationBusinessId";
+const IMPERSONATION_NAME_KEY = "impersonationBusinessName";
+const IMPERSONATION_PROFILE_KEY = "impersonationBusinessProfileId";
 
 function AppLayout({ children }) {
   const { user, logout } = useAuthStore();
@@ -11,19 +16,14 @@ function AppLayout({ children }) {
   const { t } = useI18n();
   const profile = getBusinessProfile();
   const allowedNavItems = routeConfig.filter((item) => canAccess(user?.role, item.moduleKey));
-
-  const businessName = user?.businessName || profile.name;
-  const ownerName = user?.name || "User";
-  const ownerInitial = ownerName.charAt(0).toUpperCase();
-  const businessInitials = businessName
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("");
+  const isAdmin = String(user?.role || "").toLowerCase() === "admin";
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [now, setNow] = useState(new Date());
+  const [businesses, setBusinesses] = useState([]);
+  const [impersonationId, setImpersonationId] = useState(localStorage.getItem(IMPERSONATION_ID_KEY) || "");
+  const [impersonationName, setImpersonationName] = useState(localStorage.getItem(IMPERSONATION_NAME_KEY) || "");
+  const [impersonationProfileId, setImpersonationProfileId] = useState(localStorage.getItem(IMPERSONATION_PROFILE_KEY) || "");
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -47,6 +47,50 @@ function AppLayout({ children }) {
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (!isAdmin) {
+      localStorage.removeItem(IMPERSONATION_ID_KEY);
+      localStorage.removeItem(IMPERSONATION_NAME_KEY);
+      localStorage.removeItem(IMPERSONATION_PROFILE_KEY);
+      setImpersonationId("");
+      setImpersonationName("");
+      setImpersonationProfileId("");
+      return;
+    }
+
+    let active = true;
+    async function loadBusinesses() {
+      try {
+        const data = await fetchBusinesses();
+        if (!active) return;
+        setBusinesses(data);
+
+        if (!impersonationId && data.length > 0) {
+          applyImpersonation(data[0], { refresh: true });
+        }
+      } catch {
+        if (!active) return;
+        setBusinesses([]);
+      }
+    }
+
+    loadBusinesses();
+    return () => {
+      active = false;
+    };
+  }, [isAdmin]);
+
+  const effectiveBusinessName = isAdmin && impersonationName ? impersonationName : (user?.businessName || profile.name);
+
+  const ownerName = user?.name || "User";
+  const ownerInitial = ownerName.charAt(0).toUpperCase();
+  const businessInitials = effectiveBusinessName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+
   const dateText = useMemo(() => {
     return new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -58,8 +102,39 @@ function AppLayout({ children }) {
     }).format(now);
   }, [now]);
 
+  function applyImpersonation(business, options = {}) {
+    if (!business?.business_id) return;
+
+    localStorage.setItem(IMPERSONATION_ID_KEY, business.business_id);
+    localStorage.setItem(IMPERSONATION_NAME_KEY, business.business_name || "");
+    localStorage.setItem(IMPERSONATION_PROFILE_KEY, business.business_profile_id || "");
+
+    if (business.business_profile_id) {
+      localStorage.setItem("businessProfileId", business.business_profile_id);
+    }
+
+    setImpersonationId(business.business_id);
+    setImpersonationName(business.business_name || "");
+    setImpersonationProfileId(business.business_profile_id || "");
+
+    if (options.refresh) {
+      navigate(0);
+    }
+  }
+
+  function handleBusinessChange(event) {
+    const nextId = event.target.value;
+    const selected = businesses.find((item) => item.business_id === nextId);
+    if (selected) {
+      applyImpersonation(selected, { refresh: true });
+    }
+  }
+
   function handleLogout() {
     logout();
+    localStorage.removeItem(IMPERSONATION_ID_KEY);
+    localStorage.removeItem(IMPERSONATION_NAME_KEY);
+    localStorage.removeItem(IMPERSONATION_PROFILE_KEY);
     navigate("/");
   }
 
@@ -91,7 +166,7 @@ function AppLayout({ children }) {
               <div className="brand-logo-mark">{businessInitials || "BS"}</div>
               <div className="brand-fill-text">
                 <p className="brand-fill-kicker">Business Workspace</p>
-                <h3>{businessName}</h3>
+                <h3>{effectiveBusinessName}</h3>
               </div>
             </div>
 
@@ -111,7 +186,21 @@ function AppLayout({ children }) {
                   <p className="popover-value">{ownerName.toUpperCase()}</p>
 
                   <p className="popover-label">Business</p>
-                  <p className="popover-value">{businessName.toUpperCase()}</p>
+                  <p className="popover-value">{effectiveBusinessName.toUpperCase()}</p>
+
+                  {isAdmin && (
+                    <div className="popover-business-switch">
+                      <label className="popover-label">Switch Business</label>
+                      <select value={impersonationId} onChange={handleBusinessChange}>
+                        {businesses.map((item) => (
+                          <option key={item.business_id} value={item.business_id}>
+                            {item.business_name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="muted small">Switching refreshes app data.</p>
+                    </div>
+                  )}
 
                   <p className="popover-time">{dateText}</p>
 

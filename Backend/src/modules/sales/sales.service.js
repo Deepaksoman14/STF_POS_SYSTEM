@@ -27,13 +27,39 @@ export async function createSale(businessId, payload) {
       grossTotal += Number(product.sale_price) * line.qty;
     }
 
+    let resolvedCustomerId = payload.customerId ?? null;
+
+    if (!resolvedCustomerId && payload.customer) {
+      const name = String(payload.customer.name || "").trim();
+      const address = String(payload.customer.address || "").trim();
+      const mobile = String(payload.customer.mobile || "").trim();
+      const email = String(payload.customer.email || "").trim();
+
+      const hasCustomerDetails = name || address || mobile || email;
+
+      if (hasCustomerDetails) {
+        if (!name) {
+          throw new ApiError(400, "Customer name is required for new customer entry");
+        }
+
+        const customerRes = await client.query(
+          `INSERT INTO customer (business_id, name, address, mobile, email)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING id`,
+          [businessId, name, address, mobile, email]
+        );
+
+        resolvedCustomerId = customerRes.rows[0].id;
+      }
+    }
+
     const saleRes = await client.query(
       `INSERT INTO sale (business_id, customer_id, payment_mode, gross_total, discount, net_total, notes, created_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id, bill_no, created_at, net_total`,
       [
         businessId,
-        payload.customerId,
+        resolvedCustomerId,
         payload.paymentMode,
         grossTotal,
         payload.discount,

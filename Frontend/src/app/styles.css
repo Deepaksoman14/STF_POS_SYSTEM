@@ -1274,3 +1274,142 @@ button.danger-ghost {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* POS customer combobox */
+.combo-box {
+  position: relative;
+}
+
+.combo-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(9, 25, 22, 0.12);
+  max-height: 220px;
+  overflow: auto;
+}
+
+button.combo-option {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--text);
+  cursor: pointer;
+}
+
+button.combo-option:hover {
+  background: rgba(16, 106, 78, 0.08);
+}
+
+.combo-title {
+  font-weight: 700;
+}
+
+.combo-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Settings page */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Admin business impersonation switch */
+.admin-business-switch {
+  display: grid;
+  gap: 4px;
+  min-width: 220px;
+}
+
+.admin-business-switch select {
+  min-width: 220px;
+}
+
+@media (max-width: 900px) {
+  .admin-business-switch {
+    width: 100%;
+  }
+
+  .admin-business-switch select {
+    width: 100%;
+  }
+}
+
+.admin-business-switch {
+  display: grid;
+  gap: 6px;
+  min-width: 240px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 106, 78, 0.18);
+  background: linear-gradient(135deg, rgba(16, 106, 78, 0.08), rgba(255, 255, 255, 0.9));
+}
+
+.admin-business-switch select {
+  min-width: 220px;
+}
+
+.admin-switch-label {
+  display: grid;
+  gap: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  color: #56706a;
+}
+
+.admin-switch-label strong {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: #1b3a33;
+}
+
+@media (max-width: 900px) {
+  .admin-business-switch {
+    width: 100%;
+  }
+
+  .admin-business-switch select {
+    width: 100%;
+  }
+}
+
+.popover-business-switch {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.popover-business-switch select {
+  width: 100%;
+}

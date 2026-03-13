@@ -7,9 +7,9 @@ import { useI18n } from "../../../i18n/useI18n";
 
 const initialForm = {
   name: "",
+  address: "",
   mobile: "",
-  village: "",
-  creditDue: "0"
+  email: ""
 };
 
 const PAGE_SIZE = 10;
@@ -37,9 +37,9 @@ function CustomersPage() {
       data.map((item) => ({
         id: item.id,
         name: item.name,
+        address: item.address,
         mobile: item.mobile,
-        village: item.village,
-        credit: Number(item.credit_due),
+        email: item.email,
         createdAt: item.created_at
       }))
     );
@@ -57,9 +57,9 @@ function CustomersPage() {
           data.map((item) => ({
             id: item.id,
             name: item.name,
+            address: item.address,
             mobile: item.mobile,
-            village: item.village,
-            credit: Number(item.credit_due),
+            email: item.email,
             createdAt: item.created_at
           }))
         );
@@ -88,17 +88,14 @@ function CustomersPage() {
       ? rows.filter((row) => (
           row.name.toLowerCase().includes(term) ||
           row.mobile.toLowerCase().includes(term) ||
-          row.village.toLowerCase().includes(term)
+          row.email.toLowerCase().includes(term) ||
+          row.address.toLowerCase().includes(term)
         ))
       : rows;
 
     const sorted = [...filtered].sort((a, b) => {
       const aValue = a[sortKey];
       const bValue = b[sortKey];
-
-      if (typeof aValue === "number" && typeof bValue === "number") {
-        return sortDir === "asc" ? aValue - bValue : bValue - aValue;
-      }
 
       return sortDir === "asc"
         ? String(aValue).localeCompare(String(bValue))
@@ -131,9 +128,9 @@ function CustomersPage() {
     try {
       await createCustomer({
         name: form.name,
+        address: form.address,
         mobile: form.mobile,
-        village: form.village,
-        creditDue: Number(form.creditDue || 0)
+        email: form.email
       });
 
       await loadCustomers();
@@ -150,9 +147,9 @@ function CustomersPage() {
     setEditingId(row.id);
     setEditForm({
       name: row.name,
+      address: row.address,
       mobile: row.mobile,
-      village: row.village,
-      creditDue: String(row.credit)
+      email: row.email
     });
   }
 
@@ -167,9 +164,9 @@ function CustomersPage() {
     try {
       await updateCustomer(editingId, {
         name: editForm.name,
+        address: editForm.address,
         mobile: editForm.mobile,
-        village: editForm.village,
-        creditDue: Number(editForm.creditDue || 0)
+        email: editForm.email
       });
 
       await loadCustomers();
@@ -207,10 +204,10 @@ function CustomersPage() {
         <form className="card section-gap" onSubmit={handleCreateCustomer}>
           <h3>{t("customers.addCustomer")}</h3>
           <div className="form-grid">
-            <input placeholder={t("customers.customerName")} value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
-            <input placeholder={t("customers.mobile")} value={form.mobile} onChange={(e) => setForm((p) => ({ ...p, mobile: e.target.value }))} required />
-            <input placeholder={t("customers.village")} value={form.village} onChange={(e) => setForm((p) => ({ ...p, village: e.target.value }))} required />
-            <input type="number" placeholder={t("customers.creditDue")} value={form.creditDue} onChange={(e) => setForm((p) => ({ ...p, creditDue: e.target.value }))} />
+            <input placeholder={t("customers.enterName")} value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+            <input placeholder={t("customers.enterAddress")} value={form.address} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} />
+            <input placeholder={t("customers.enterMobile")} value={form.mobile} onChange={(e) => setForm((p) => ({ ...p, mobile: e.target.value }))} required />
+            <input type="email" placeholder={t("customers.enterEmail")} value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} />
           </div>
           <div className="actions">
             <button type="submit" disabled={submitting}>{submitting ? t("customers.saving") : t("customers.createCustomer")}</button>
@@ -222,10 +219,10 @@ function CustomersPage() {
         <form className="card section-gap" onSubmit={handleUpdateCustomer}>
           <h3>Edit Customer</h3>
           <div className="form-grid">
-            <input placeholder={t("customers.customerName")} value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} required />
-            <input placeholder={t("customers.mobile")} value={editForm.mobile} onChange={(e) => setEditForm((p) => ({ ...p, mobile: e.target.value }))} required />
-            <input placeholder={t("customers.village")} value={editForm.village} onChange={(e) => setEditForm((p) => ({ ...p, village: e.target.value }))} required />
-            <input type="number" placeholder={t("customers.creditDue")} value={editForm.creditDue} onChange={(e) => setEditForm((p) => ({ ...p, creditDue: e.target.value }))} />
+            <input placeholder={t("customers.enterName")} value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} required />
+            <input placeholder={t("customers.enterAddress")} value={editForm.address} onChange={(e) => setEditForm((p) => ({ ...p, address: e.target.value }))} />
+            <input placeholder={t("customers.enterMobile")} value={editForm.mobile} onChange={(e) => setEditForm((p) => ({ ...p, mobile: e.target.value }))} required />
+            <input type="email" placeholder={t("customers.enterEmail")} value={editForm.email} onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))} />
           </div>
           <div className="actions">
             <button type="button" className="ghost" onClick={() => setEditingId("")}>Cancel</button>
@@ -244,7 +241,7 @@ function CustomersPage() {
           <div className="table-toolbar">
             <input
               className="table-search"
-              placeholder="Search by customer, mobile, village"
+              placeholder="Search by name, mobile, email, address"
               value={searchTerm}
               onChange={(event) => {
                 setSearchTerm(event.target.value);
@@ -260,8 +257,8 @@ function CustomersPage() {
                 <tr>
                   <th><button type="button" className="table-sort-btn" onClick={() => handleSort("name")}>{t("customers.customer")}</button></th>
                   <th><button type="button" className="table-sort-btn" onClick={() => handleSort("mobile")}>{t("customers.mobile")}</button></th>
-                  <th><button type="button" className="table-sort-btn" onClick={() => handleSort("village")}>{t("customers.village")}</button></th>
-                  <th><button type="button" className="table-sort-btn" onClick={() => handleSort("credit")}>{t("customers.creditDue")}</button></th>
+                  <th><button type="button" className="table-sort-btn" onClick={() => handleSort("email")}>{t("customers.email")}</button></th>
+                  <th><button type="button" className="table-sort-btn" onClick={() => handleSort("address")}>{t("customers.address")}</button></th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -269,9 +266,9 @@ function CustomersPage() {
                 {pagedRows.map((row) => (
                   <tr key={row.id}>
                     <td>{row.name}</td>
-                    <td>{row.mobile}</td>
-                    <td>{row.village}</td>
-                    <td>{row.credit}</td>
+                    <td>{row.mobile || "-"}</td>
+                    <td>{row.email || "-"}</td>
+                    <td>{row.address || "-"}</td>
                     <td>
                       {canManage ? (
                         <div className="row-actions">

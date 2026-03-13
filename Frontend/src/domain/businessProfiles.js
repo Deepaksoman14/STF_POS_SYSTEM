@@ -1,8 +1,24 @@
-export const defaultBusinessProfileId = "green-grow";
+export const defaultBusinessProfileId = "fertilizer";
 
 export const businessProfiles = {
-  "green-grow": {
-    name: "Green Grow Traders",
+  fertilizer: {
+    name: "Fertilizer Business",
+    currency: "INR",
+    locale: "en-IN",
+    productFields: [
+      { key: "sku", label: "SKU", required: true },
+      { key: "name", label: "Product Name", required: true },
+      { key: "category", label: "Category", required: true },
+      { key: "batchNo", label: "Batch No", required: true },
+      { key: "composition", label: "Composition", required: false },
+      { key: "costPrice", label: "Cost Price", required: true },
+      { key: "salePrice", label: "Sale Price", required: true },
+      { key: "stockQty", label: "Stock Qty", required: true },
+      { key: "reorderLevel", label: "Reorder Level", required: true }
+    ]
+  },
+  paint: {
+    name: "Paint Business",
     currency: "INR",
     locale: "en-IN",
     productFields: [

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import { listUsers, updateUserAccess } from "./user.service.js";
+import { listUsers, listBusinesses, updateUserAccess } from "./user.service.js";
 
 const updateUserSchema = z.object({
   role: z.enum(["admin", "owner", "viewer"]).optional(),
@@ -11,6 +11,11 @@ const updateUserSchema = z.object({
 
 export const listUsersController = asyncHandler(async (_req, res) => {
   const data = await listUsers();
+  res.json({ success: true, data });
+});
+
+export const listBusinessesController = asyncHandler(async (_req, res) => {
+  const data = await listBusinesses();
   res.json({ success: true, data });
 });
 

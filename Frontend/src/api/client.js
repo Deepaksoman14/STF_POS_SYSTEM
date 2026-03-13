@@ -10,6 +10,7 @@ const api = axios.create({
 function handleSessionExpiry() {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("authUser");
+  localStorage.removeItem("impersonationBusinessId");
   sessionStorage.setItem(SESSION_NOTICE_KEY, "Your session expired. Please login again.");
 
   if (window.location.pathname !== "/") {
@@ -22,6 +23,12 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  const impersonationId = localStorage.getItem("impersonationBusinessId");
+  if (impersonationId) {
+    config.headers["x-business-id"] = impersonationId;
+  }
+
   return config;
 });
 
