@@ -9,16 +9,21 @@ import {
   updateProduct
 } from "./product.service.js";
 
-const productSchema = z.object({
+const variantSchema = z.object({
+  id: z.string().uuid().optional(),
   sku: z.string().min(2),
-  name: z.string().min(2),
-  category: z.string().min(2),
-  batchNo: z.string().min(2),
-  composition: z.string().optional().default(""),
+  unitType: z.enum(["ml", "g", "kg", "ltr", "pcs"]).default("pcs"),
+  unitSize: z.coerce.number().positive().default(1),
   costPrice: z.coerce.number().nonnegative().default(0),
   salePrice: z.coerce.number().positive(),
   stockQty: z.coerce.number().int().nonnegative(),
   reorderLevel: z.coerce.number().int().nonnegative()
+});
+
+const productSchema = z.object({
+  name: z.string().min(2),
+  category: z.string().min(2),
+  variants: z.array(variantSchema).min(1)
 });
 
 const paramsSchema = z.object({

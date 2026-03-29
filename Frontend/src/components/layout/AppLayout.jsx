@@ -9,6 +9,7 @@ import { useI18n } from "../../i18n/useI18n";
 const IMPERSONATION_ID_KEY = "impersonationBusinessId";
 const IMPERSONATION_NAME_KEY = "impersonationBusinessName";
 const IMPERSONATION_PROFILE_KEY = "impersonationBusinessProfileId";
+const COPYRIGHT_TEXT = `Copyright © ${new Date().getFullYear()} Soman Tech Foundry. All rights reserved.`;
 
 function AppLayout({ children }) {
   const { user, logout } = useAuthStore();
@@ -212,6 +213,7 @@ function AppLayout({ children }) {
         </header>
 
         <section className="page-enter">{children}</section>
+        <p className="app-copyright">{COPYRIGHT_TEXT}</p>
       </main>
     </div>
   );

@@ -4,6 +4,8 @@ import { extractApiError } from "../../../api/client";
 import { useI18n } from "../../../i18n/useI18n";
 import { useAuthStore } from "../../../store/authStore";
 
+const COPYRIGHT_TEXT = `Copyright © ${new Date().getFullYear()} Soman Tech Foundry. All rights reserved.`;
+
 function LoginPage() {
   const { login } = useAuthStore();
   const { t } = useI18n();
@@ -57,6 +59,7 @@ function LoginPage() {
         {error && <p className="error-text">{error}</p>}
         <button type="submit" disabled={loading}>{loading ? t("auth.signingIn") : t("auth.signIn")}</button>
         <p className="auth-switch">{t("auth.newBusiness")} <Link to="/register">{t("auth.createOwner")}</Link></p>
+        <p className="app-copyright auth-copy">{COPYRIGHT_TEXT}</p>
       </form>
     </div>
   );

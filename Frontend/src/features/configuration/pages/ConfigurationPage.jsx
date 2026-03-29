@@ -19,18 +19,18 @@ function ConfigurationPage() {
 
     async function loadUsers() {
       try {
-        const data = await fetchUsers();
+        const userData = await fetchUsers();
         if (!mounted) return;
 
-        setUsers(data);
+        setUsers(userData);
         setDrafts(
-          data.reduce((acc, item) => {
+          userData.reduce((acc, item) => {
             acc[item.id] = { role: item.role, isActive: item.is_active };
             return acc;
           }, {})
         );
       } catch (err) {
-        if (mounted) setError(extractApiError(err, "Failed to load users"));
+        if (mounted) setError(extractApiError(err, "Failed to load configuration"));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -80,69 +80,74 @@ function ConfigurationPage() {
   return (
     <div>
       <h2>Configuration</h2>
-      <p className="muted">Admin-only control for role assignment and account visibility.</p>
+      <p className="muted">Admin-only controls for user roles and visibility.</p>
       {error && <p className="error-text">{error}</p>}
       {success && <p className="success-text">{success}</p>}
 
       {loading ? (
-        <p className="muted">Loading users...</p>
+        <p className="muted">Loading configuration...</p>
       ) : (
-        <div className="card table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Visible / Active</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedUsers.map((item) => {
-                const draft = drafts[item.id] || { role: item.role, isActive: item.is_active };
-                const isSelf = item.email === currentUser?.email;
+        <div className="card section-gap table-enhanced-wrap">
+          <div className="table-toolbar">
+            <h3>User Access</h3>
+          </div>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Visible / Active</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedUsers.map((item) => {
+                  const draft = drafts[item.id] || { role: item.role, isActive: item.is_active };
+                  const isSelf = item.email === currentUser?.email;
 
-                return (
-                  <tr key={item.id}>
-                    <td>{item.full_name}</td>
-                    <td>{item.email}</td>
-                    <td>
-                      <select
-                        value={draft.role}
-                        onChange={(event) => patchDraft(item.id, { role: event.target.value })}
-                        disabled={savingId === item.id}
-                      >
-                        {roles.map((role) => (
-                          <option key={role} value={role}>{role}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <label className="toggle-inline">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(draft.isActive)}
-                          onChange={(event) => patchDraft(item.id, { isActive: event.target.checked })}
-                          disabled={savingId === item.id || isSelf}
-                        />
-                        <span>{draft.isActive ? "Active" : "Disabled"}</span>
-                      </label>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        onClick={() => handleSave(item.id)}
-                        disabled={savingId === item.id}
-                      >
-                        {savingId === item.id ? "Saving..." : "Save"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  return (
+                    <tr key={item.id}>
+                      <td>{item.full_name}</td>
+                      <td>{item.email}</td>
+                      <td>
+                        <select
+                          value={draft.role}
+                          onChange={(event) => patchDraft(item.id, { role: event.target.value })}
+                          disabled={savingId === item.id}
+                        >
+                          {roles.map((role) => (
+                            <option key={role} value={role}>{role}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <label className="toggle-inline">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(draft.isActive)}
+                            onChange={(event) => patchDraft(item.id, { isActive: event.target.checked })}
+                            disabled={savingId === item.id || isSelf}
+                          />
+                          <span>{draft.isActive ? "Active" : "Disabled"}</span>
+                        </label>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          onClick={() => handleSave(item.id)}
+                          disabled={savingId === item.id}
+                        >
+                          {savingId === item.id ? "Saving..." : "Save"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

@@ -9,8 +9,21 @@ import env from "./config/env.js";
 
 const app = express();
 
+function parseCorsOrigins(value) {
+  const origins = String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (origins.length === 0 || origins.includes("*")) {
+    return true;
+  }
+
+  return origins;
+}
+
 app.use(helmet());
-app.use(cors({ origin: env.CORS_ORIGIN.split(",").map((item) => item.trim()) }));
+app.use(cors({ origin: parseCorsOrigins(env.CORS_ORIGIN), credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 

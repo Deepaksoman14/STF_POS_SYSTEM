@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { createSale, listSales } from "./sales.service.js";
+import { INVENTORY_LOCATION_CODES } from "../inventory/inventoryLocation.service.js";
 
 const optionalString = z.string().trim().optional().default("");
 
@@ -12,15 +13,19 @@ const customerInlineSchema = z.object({
 });
 
 const createSaleSchema = z.object({
+  orderType: z.enum(["retail", "wholesale"]).default("retail"),
   customerId: z.string().uuid().nullable().optional(),
   customer: customerInlineSchema.optional(),
+  wholesaleTinNo: optionalString,
+  wholesaleFlPlSlNo: optionalString,
+  sourceLocationCode: z.enum([INVENTORY_LOCATION_CODES.MAIN_STORE, INVENTORY_LOCATION_CODES.GODOWN]).default(INVENTORY_LOCATION_CODES.MAIN_STORE),
   paymentMode: z.enum(["cash", "upi", "card", "credit"]),
   discount: z.coerce.number().nonnegative().default(0),
   notes: z.string().optional().default(""),
   createdBy: z.string().min(2),
   items: z.array(
     z.object({
-      productId: z.string().uuid(),
+      variantId: z.string().uuid(),
       qty: z.coerce.number().int().positive()
     })
   ).min(1)

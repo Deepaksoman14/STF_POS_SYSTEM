@@ -1,10 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { extractApiError } from "../../../api/client";
+import { fetchCurrentPrintTemplate, updateCurrentPrintTemplate } from "../../../api/printTemplateApi";
 import { useI18n } from "../../../i18n/useI18n";
 import { getBusinessProfile } from "../../../utils/formatters";
 import { useAuthStore } from "../../../store/authStore";
 
 const currencyOptions = ["INR", "USD", "EUR", "GBP"];
 const localeOptions = ["en-IN", "en-US", "ta-IN"];
+
+const defaultBillProfile = {
+  businessName: "",
+  businessDescription: "",
+  address: "",
+  city: "",
+  tinNo: "",
+  cstNo: "",
+  welNo: "",
+  plNo: "",
+  slNo: "",
+  gstin: "",
+  termsAndConditions: "",
+  disclaimer: "",
+  wholesalePaperSize: "A4"
+};
 
 function SettingsPage() {
   const { t } = useI18n();
@@ -15,8 +33,34 @@ function SettingsPage() {
     locale: profile.locale
   });
   const [savedText, setSavedText] = useState("");
+  const [error, setError] = useState("");
+  const [printTemplateKey, setPrintTemplateKey] = useState("classic_invoice");
+  const [billProfile, setBillProfile] = useState({ ...defaultBillProfile });
 
-  function handleSave() {
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadPrintTemplateConfig() {
+      try {
+        const current = await fetchCurrentPrintTemplate();
+
+        if (!mounted) return;
+        setPrintTemplateKey(current?.templateKey || "classic_invoice");
+        setBillProfile({ ...defaultBillProfile, ...(current?.billProfile || {}) });
+      } catch (err) {
+        if (!mounted) return;
+        setError(extractApiError(err, "Failed to load print templates"));
+      }
+    }
+
+    loadPrintTemplateConfig();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  async function handleSave() {
+    setError("");
     localStorage.setItem(
       "businessProfileOverride",
       JSON.stringify({
@@ -24,6 +68,14 @@ function SettingsPage() {
         locale: form.locale
       })
     );
+
+    try {
+      await updateCurrentPrintTemplate(printTemplateKey, billProfile);
+    } catch (err) {
+      setError(extractApiError(err, "Failed to save print template"));
+      return;
+    }
+
     setSavedText(t("settings.saved"));
   }
 
@@ -33,7 +85,12 @@ function SettingsPage() {
       currency: profile.currency,
       locale: profile.locale
     });
+    setBillProfile({ ...defaultBillProfile });
     setSavedText(t("settings.resetDone"));
+  }
+
+  function patchBillProfile(field, value) {
+    setBillProfile((prev) => ({ ...prev, [field]: value }));
   }
 
   return (
@@ -73,8 +130,84 @@ function SettingsPage() {
             <button type="button" className="ghost" onClick={handleReset}>{t("settings.reset")}</button>
             <button type="button" onClick={handleSave}>{t("settings.save")}</button>
           </div>
+          {error && <p className="error-text">{error}</p>}
           {savedText && <p className="success-text">{savedText}</p>}
           <p className="muted small">{t("settings.localOnly")}</p>
+        </div>
+      </div>
+
+      <div className="card section-gap">
+        <h3>Bill Profile</h3>
+        <p className="muted small">These values are used in the wholesale bill print format.</p>
+
+        <div className="bill-profile-form">
+          <h4>Licence Section</h4>
+          <div className="bill-profile-grid">
+            <label className="bill-profile-field">
+              <span>TIN No.</span>
+              <input placeholder="Enter TIN No." value={billProfile.tinNo} onChange={(e) => patchBillProfile("tinNo", e.target.value)} />
+            </label>
+            <label className="bill-profile-field">
+              <span>CST No.</span>
+              <input placeholder="Enter CST No." value={billProfile.cstNo} onChange={(e) => patchBillProfile("cstNo", e.target.value)} />
+            </label>
+            <label className="bill-profile-field">
+              <span>W.E.L No.</span>
+              <input placeholder="Enter W.E.L No." value={billProfile.welNo} onChange={(e) => patchBillProfile("welNo", e.target.value)} />
+            </label>
+            <label className="bill-profile-field">
+              <span>PL No.</span>
+              <input placeholder="Enter PL No." value={billProfile.plNo} onChange={(e) => patchBillProfile("plNo", e.target.value)} />
+            </label>
+            <label className="bill-profile-field">
+              <span>SL No.</span>
+              <input placeholder="Enter SL No." value={billProfile.slNo} onChange={(e) => patchBillProfile("slNo", e.target.value)} />
+            </label>
+            <label className="bill-profile-field">
+              <span>GSTIN</span>
+              <input placeholder="Enter GSTIN" value={billProfile.gstin} onChange={(e) => patchBillProfile("gstin", e.target.value)} />
+            </label>
+          </div>
+
+          <h4>Address Section</h4>
+          <div className="bill-profile-grid">
+            <label className="bill-profile-field">
+              <span>Business Name</span>
+              <input placeholder="Enter business name" value={billProfile.businessName} onChange={(e) => patchBillProfile("businessName", e.target.value)} />
+            </label>
+            <label className="bill-profile-field">
+              <span>Business Description</span>
+              <input placeholder="Enter business description" value={billProfile.businessDescription} onChange={(e) => patchBillProfile("businessDescription", e.target.value)} />
+            </label>
+            <label className="bill-profile-field">
+              <span>Address</span>
+              <input placeholder="Enter address" value={billProfile.address} onChange={(e) => patchBillProfile("address", e.target.value)} />
+            </label>
+            <label className="bill-profile-field">
+              <span>City</span>
+              <input placeholder="Enter city" value={billProfile.city} onChange={(e) => patchBillProfile("city", e.target.value)} />
+            </label>
+          </div>
+
+          <h4>Other Section</h4>
+          <label className="bill-profile-field full-width">
+            <span>Terms and Conditions</span>
+            <textarea
+              rows={4}
+              placeholder="Enter terms and conditions"
+              value={billProfile.termsAndConditions}
+              onChange={(e) => patchBillProfile("termsAndConditions", e.target.value)}
+            />
+          </label>
+          <label className="bill-profile-field full-width">
+            <span>Disclaimer</span>
+            <textarea
+              rows={3}
+              placeholder="Enter disclaimer"
+              value={billProfile.disclaimer}
+              onChange={(e) => patchBillProfile("disclaimer", e.target.value)}
+            />
+          </label>
         </div>
       </div>
     </div>

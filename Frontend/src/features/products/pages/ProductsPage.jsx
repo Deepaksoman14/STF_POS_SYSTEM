@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { extractApiError } from "../../../api/client";
 import {
   createProduct,
@@ -12,19 +12,37 @@ import { canAccess } from "../../../app/permissions";
 import { useAuthStore } from "../../../store/authStore";
 import { useI18n } from "../../../i18n/useI18n";
 
-const initialForm = {
+const UNIT_OPTIONS = [
+  { value: "ml", label: "ml" },
+  { value: "g", label: "g" },
+  { value: "kg", label: "kg" },
+  { value: "ltr", label: "ltr" },
+  { value: "pcs", label: "pcs" }
+];
+
+const initialVariant = {
+  id: "",
   sku: "",
-  name: "",
-  category: "",
-  batchNo: "",
-  composition: "",
+  unitType: "pcs",
+  unitSize: "1",
   costPrice: "",
   salePrice: "",
   stockQty: "",
   reorderLevel: ""
 };
 
-const PAGE_SIZE = 10;
+const initialForm = {
+  name: "",
+  category: "",
+  variants: [{ ...initialVariant }]
+};
+
+const PAGE_SIZE = 5;
+
+function formatUnitLabel(unitSize, unitType) {
+  if (!unitSize || Number(unitSize) === 1 && unitType === "pcs") return "pcs";
+  return `${unitSize}${unitType}`;
+}
 
 function ProductsPage() {
   const { user } = useAuthStore();
@@ -37,6 +55,8 @@ function ProductsPage() {
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [successText, setSuccessText] = useState("");
+  const [nameMenuOpen, setNameMenuOpen] = useState(false);
+  const [selectedExistingProductId, setSelectedExistingProductId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortKey, setSortKey] = useState("name");
   const [sortDir, setSortDir] = useState("asc");
@@ -48,15 +68,18 @@ function ProductsPage() {
   function mapProduct(item) {
     return {
       id: item.id,
-      sku: item.sku,
       name: item.name,
       category: item.category,
-      batchNo: item.batch_no,
-      composition: item.composition,
-      costPrice: Number(item.cost_price),
-      salePrice: Number(item.sale_price),
-      stockQty: Number(item.stock_qty),
-      reorderLevel: Number(item.reorder_level),
+      variants: (item.variants || []).map((variant) => ({
+        id: variant.id,
+        sku: variant.sku,
+        unitType: variant.unit_type || "pcs",
+        unitSize: Number(variant.unit_size || 1),
+        costPrice: Number(variant.cost_price || 0),
+        salePrice: Number(variant.sale_price || 0),
+        stockQty: Number(variant.stock_qty || 0),
+        reorderLevel: Number(variant.reorder_level || 0)
+      })),
       createdAt: item.created_at
     };
   }
@@ -105,19 +128,15 @@ function ProductsPage() {
 
     const filtered = term
       ? rows.filter((row) => (
-          row.sku.toLowerCase().includes(term) ||
           row.name.toLowerCase().includes(term) ||
-          row.category.toLowerCase().includes(term)
+          row.category.toLowerCase().includes(term) ||
+          row.variants.some((variant) => variant.sku.toLowerCase().includes(term))
         ))
       : rows;
 
     const sorted = [...filtered].sort((a, b) => {
       const aValue = a[sortKey];
       const bValue = b[sortKey];
-
-      if (typeof aValue === "number" && typeof bValue === "number") {
-        return sortDir === "asc" ? aValue - bValue : bValue - aValue;
-      }
 
       return sortDir === "asc"
         ? String(aValue).localeCompare(String(bValue))
@@ -131,6 +150,19 @@ function ProductsPage() {
   const currentPage = Math.min(page, totalPages);
   const pagedRows = filteredSortedRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const productNameMatches = useMemo(() => {
+    const term = form.name.trim().toLowerCase();
+    if (!term) return [];
+
+    return rows
+      .filter((row) => row.name.toLowerCase().includes(term))
+      .slice(0, 6);
+  }, [form.name, rows]);
+
+  const selectedExistingProduct = useMemo(() => {
+    return rows.find((row) => row.id === selectedExistingProductId) || null;
+  }, [rows, selectedExistingProductId]);
+
   function handleSort(key) {
     if (sortKey === key) {
       setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -141,6 +173,49 @@ function ProductsPage() {
     setSortDir("asc");
   }
 
+  function updateVariant(_formState, setFormState, index, field, value) {
+    setFormState((prev) => ({
+      ...prev,
+      variants: prev.variants.map((variant, idx) => (
+        idx === index ? { ...variant, [field]: value } : variant
+      ))
+    }));
+  }
+
+  function addVariant(_formState, setFormState) {
+    setFormState((prev) => ({
+      ...prev,
+      variants: [...prev.variants, { ...initialVariant }]
+    }));
+  }
+
+  function removeVariant(_formState, setFormState, index) {
+    setFormState((prev) => ({
+      ...prev,
+      variants: prev.variants.filter((_, idx) => idx !== index)
+    }));
+  }
+
+  function handleNameChange(value) {
+    setForm((prev) => ({ ...prev, name: value }));
+    setNameMenuOpen(Boolean(value.trim()));
+
+    const exact = rows.find((row) => row.name.trim().toLowerCase() === value.trim().toLowerCase());
+    if (exact) {
+      setSelectedExistingProductId(exact.id);
+      setForm((prev) => ({ ...prev, category: exact.category }));
+      return;
+    }
+
+    setSelectedExistingProductId("");
+  }
+
+  function selectExistingProduct(row) {
+    setSelectedExistingProductId(row.id);
+    setForm((prev) => ({ ...prev, name: row.name, category: row.category }));
+    setNameMenuOpen(false);
+  }
+
   async function handleCreateProduct(event) {
     event.preventDefault();
     setSubmitting(true);
@@ -148,21 +223,51 @@ function ProductsPage() {
     setSuccessText("");
 
     try {
-      await createProduct({
-        sku: form.sku,
-        name: form.name,
-        category: form.category,
-        batchNo: form.batchNo,
-        composition: form.composition,
-        costPrice: Number(form.costPrice),
-        salePrice: Number(form.salePrice),
-        stockQty: Number(form.stockQty),
-        reorderLevel: Number(form.reorderLevel)
-      });
+      const normalizedName = form.name.trim().toLowerCase();
+      const exactMatch = rows.find((row) => row.name.trim().toLowerCase() === normalizedName);
+      const targetProduct = selectedExistingProduct || exactMatch;
+      const incomingVariants = form.variants.map((variant) => ({
+        sku: variant.sku,
+        unitType: variant.unitType,
+        unitSize: Number(variant.unitSize),
+        costPrice: Number(variant.costPrice),
+        salePrice: Number(variant.salePrice),
+        stockQty: Number(variant.stockQty),
+        reorderLevel: Number(variant.reorderLevel)
+      }));
+
+      if (targetProduct) {
+        await updateProduct(targetProduct.id, {
+          name: targetProduct.name,
+          category: targetProduct.category,
+          variants: [
+            ...(targetProduct.variants || []).map((variant) => ({
+              id: variant.id,
+              sku: variant.sku,
+              unitType: variant.unitType,
+              unitSize: Number(variant.unitSize),
+              costPrice: Number(variant.costPrice),
+              salePrice: Number(variant.salePrice),
+              stockQty: Number(variant.stockQty),
+              reorderLevel: Number(variant.reorderLevel)
+            })),
+            ...incomingVariants
+          ]
+        });
+        setSuccessText("Variant added to existing product successfully.");
+      } else {
+        await createProduct({
+          name: form.name,
+          category: form.category,
+          variants: incomingVariants
+        });
+        setSuccessText(t("products.success"));
+      }
 
       await Promise.all([loadProducts(), loadArchivedProducts()]);
       setForm(initialForm);
-      setSuccessText(t("products.success"));
+      setSelectedExistingProductId("");
+      setNameMenuOpen(false);
     } catch (err) {
       setError(extractApiError(err, "Failed to create product"));
     } finally {
@@ -173,15 +278,20 @@ function ProductsPage() {
   function beginEdit(row) {
     setEditingId(row.id);
     setEditForm({
-      sku: row.sku,
       name: row.name,
       category: row.category,
-      batchNo: row.batchNo,
-      composition: row.composition,
-      costPrice: String(row.costPrice),
-      salePrice: String(row.salePrice),
-      stockQty: String(row.stockQty),
-      reorderLevel: String(row.reorderLevel)
+      variants: row.variants.length
+        ? row.variants.map((variant) => ({
+            id: variant.id,
+            sku: variant.sku,
+            unitType: variant.unitType,
+            unitSize: String(variant.unitSize || 1),
+            costPrice: String(variant.costPrice),
+            salePrice: String(variant.salePrice),
+            stockQty: String(variant.stockQty),
+            reorderLevel: String(variant.reorderLevel)
+          }))
+        : [{ ...initialVariant }]
     });
   }
 
@@ -195,15 +305,18 @@ function ProductsPage() {
 
     try {
       await updateProduct(editingId, {
-        sku: editForm.sku,
         name: editForm.name,
         category: editForm.category,
-        batchNo: editForm.batchNo,
-        composition: editForm.composition,
-        costPrice: Number(editForm.costPrice),
-        salePrice: Number(editForm.salePrice),
-        stockQty: Number(editForm.stockQty),
-        reorderLevel: Number(editForm.reorderLevel)
+        variants: editForm.variants.map((variant) => ({
+          id: variant.id || undefined,
+          sku: variant.sku,
+          unitType: variant.unitType,
+          unitSize: Number(variant.unitSize),
+          costPrice: Number(variant.costPrice),
+          salePrice: Number(variant.salePrice),
+          stockQty: Number(variant.stockQty),
+          reorderLevel: Number(variant.reorderLevel)
+        }))
       });
 
       await Promise.all([loadProducts(), loadArchivedProducts()]);
@@ -245,6 +358,65 @@ function ProductsPage() {
     }
   }
 
+  function renderVariantRows(formState, setFormState, allowRemove) {
+    return formState.variants.map((variant, index) => (
+      <div key={variant.id || index} className="variant-row">
+        <input
+          placeholder="SKU"
+          value={variant.sku}
+          onChange={(e) => updateVariant(formState, setFormState, index, "sku", e.target.value)}
+          required
+        />
+        <select
+          value={variant.unitType}
+          onChange={(e) => updateVariant(formState, setFormState, index, "unitType", e.target.value)}
+        >
+          {UNIT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+        <input
+          type="number"
+          placeholder="Unit Size"
+          value={variant.unitSize}
+          onChange={(e) => updateVariant(formState, setFormState, index, "unitSize", e.target.value)}
+          required
+        />
+        <input
+          type="number"
+          placeholder="Cost Price"
+          value={variant.costPrice}
+          onChange={(e) => updateVariant(formState, setFormState, index, "costPrice", e.target.value)}
+          required
+        />
+        <input
+          type="number"
+          placeholder="Sale Price"
+          value={variant.salePrice}
+          onChange={(e) => updateVariant(formState, setFormState, index, "salePrice", e.target.value)}
+          required
+        />
+        <input
+          type="number"
+          placeholder="Stock Qty"
+          value={variant.stockQty}
+          onChange={(e) => updateVariant(formState, setFormState, index, "stockQty", e.target.value)}
+          required
+        />
+        <input
+          type="number"
+          placeholder="Reorder Level"
+          value={variant.reorderLevel}
+          onChange={(e) => updateVariant(formState, setFormState, index, "reorderLevel", e.target.value)}
+          required
+        />
+        {allowRemove && (
+          <button type="button" className="ghost" onClick={() => removeVariant(formState, setFormState, index)}>Remove</button>
+        )}
+      </div>
+    ));
+  }
+
   return (
     <div>
       <h2>{t("products.title")}</h2>
@@ -254,16 +426,50 @@ function ProductsPage() {
         <form className="card section-gap" onSubmit={handleCreateProduct}>
           <h3>{t("products.addProduct")}</h3>
           <div className="form-grid">
-            <input placeholder="SKU" value={form.sku} onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value }))} required />
-            <input placeholder={t("products.productName")} value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
-            <input placeholder={t("products.category")} value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} required />
-            <input placeholder={t("products.batchNo")} value={form.batchNo} onChange={(e) => setForm((p) => ({ ...p, batchNo: e.target.value }))} required />
-            <input placeholder={t("products.composition")} value={form.composition} onChange={(e) => setForm((p) => ({ ...p, composition: e.target.value }))} />
-            <input type="number" placeholder="Cost Price" value={form.costPrice} onChange={(e) => setForm((p) => ({ ...p, costPrice: e.target.value }))} required />
-            <input type="number" placeholder={t("products.salePrice")} value={form.salePrice} onChange={(e) => setForm((p) => ({ ...p, salePrice: e.target.value }))} required />
-            <input type="number" placeholder={t("products.stockQty")} value={form.stockQty} onChange={(e) => setForm((p) => ({ ...p, stockQty: e.target.value }))} required />
-            <input type="number" placeholder={t("products.reorderLevel")} value={form.reorderLevel} onChange={(e) => setForm((p) => ({ ...p, reorderLevel: e.target.value }))} required />
+            <div className="combo-box">
+              <input
+                placeholder={t("products.productName")}
+                value={form.name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                onFocus={() => setNameMenuOpen(Boolean(form.name.trim()))}
+                onBlur={() => setTimeout(() => setNameMenuOpen(false), 120)}
+                required
+              />
+              {nameMenuOpen && productNameMatches.length > 0 && (
+                <div className="combo-menu">
+                  {productNameMatches.map((row) => (
+                    <button
+                      key={row.id}
+                      type="button"
+                      className="combo-option"
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        selectExistingProduct(row);
+                      }}
+                    >
+                      <span className="combo-title">{row.name}</span>
+                      <span className="combo-sub">{row.category} · {row.variants.length} variants</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <input
+              placeholder={t("products.category")}
+              value={form.category}
+              onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
+              required
+              disabled={Boolean(selectedExistingProduct)}
+            />
           </div>
+          {selectedExistingProduct && <p className="muted small">Existing product selected. New variants will be added to this product.</p>}
+
+          <div className="variant-block">
+            <h4>Variants</h4>
+            {renderVariantRows(form, setForm, form.variants.length > 1)}
+            <button type="button" className="ghost" onClick={() => addVariant(form, setForm)}>Add Variant</button>
+          </div>
+
           <div className="actions">
             <button type="submit" disabled={submitting}>{submitting ? t("products.saving") : t("products.createProduct")}</button>
           </div>
@@ -274,16 +480,16 @@ function ProductsPage() {
         <form className="card section-gap" onSubmit={handleUpdateProduct}>
           <h3>Edit Product</h3>
           <div className="form-grid">
-            <input placeholder="SKU" value={editForm.sku} onChange={(e) => setEditForm((p) => ({ ...p, sku: e.target.value }))} required />
             <input placeholder={t("products.productName")} value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} required />
             <input placeholder={t("products.category")} value={editForm.category} onChange={(e) => setEditForm((p) => ({ ...p, category: e.target.value }))} required />
-            <input placeholder={t("products.batchNo")} value={editForm.batchNo} onChange={(e) => setEditForm((p) => ({ ...p, batchNo: e.target.value }))} required />
-            <input placeholder={t("products.composition")} value={editForm.composition} onChange={(e) => setEditForm((p) => ({ ...p, composition: e.target.value }))} />
-            <input type="number" placeholder="Cost Price" value={editForm.costPrice} onChange={(e) => setEditForm((p) => ({ ...p, costPrice: e.target.value }))} required />
-            <input type="number" placeholder={t("products.salePrice")} value={editForm.salePrice} onChange={(e) => setEditForm((p) => ({ ...p, salePrice: e.target.value }))} required />
-            <input type="number" placeholder={t("products.stockQty")} value={editForm.stockQty} onChange={(e) => setEditForm((p) => ({ ...p, stockQty: e.target.value }))} required />
-            <input type="number" placeholder={t("products.reorderLevel")} value={editForm.reorderLevel} onChange={(e) => setEditForm((p) => ({ ...p, reorderLevel: e.target.value }))} required />
           </div>
+
+          <div className="variant-block">
+            <h4>Variants</h4>
+            {renderVariantRows(editForm, setEditForm, editForm.variants.length > 1)}
+            <button type="button" className="ghost" onClick={() => addVariant(editForm, setEditForm)}>Add Variant</button>
+          </div>
+
           <div className="actions">
             <button type="button" className="ghost" onClick={() => setEditingId("")}>Cancel</button>
             <button type="submit" disabled={submitting}>{submitting ? "Saving..." : "Update Product"}</button>
@@ -302,7 +508,7 @@ function ProductsPage() {
             <div className="table-toolbar">
               <input
                 className="table-search"
-                placeholder="Search by SKU, name, or category"
+                placeholder="Search by name, category, or SKU"
                 value={searchTerm}
                 onChange={(event) => {
                   setSearchTerm(event.target.value);
@@ -316,26 +522,28 @@ function ProductsPage() {
               <table>
                 <thead>
                   <tr>
-                    <th><button type="button" className="table-sort-btn" onClick={() => handleSort("sku")}>SKU</button></th>
                     <th><button type="button" className="table-sort-btn" onClick={() => handleSort("name")}>{t("products.productName")}</button></th>
                     <th><button type="button" className="table-sort-btn" onClick={() => handleSort("category")}>{t("products.category")}</button></th>
-                    <th><button type="button" className="table-sort-btn" onClick={() => handleSort("batchNo")}>{t("products.batchNo")}</button></th>
-                    <th><button type="button" className="table-sort-btn" onClick={() => handleSort("costPrice")}>Cost Price</button></th>
-                    <th><button type="button" className="table-sort-btn" onClick={() => handleSort("salePrice")}>{t("products.salePrice")}</button></th>
-                    <th><button type="button" className="table-sort-btn" onClick={() => handleSort("stockQty")}>{t("products.stockQty")}</button></th>
+                    <th>Variants</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pagedRows.map((row) => (
                     <tr key={row.id}>
-                      <td>{row.sku}</td>
-                      <td>{row.name}</td>
+                      <td>
+                        <strong>{row.name}</strong>
+                      </td>
                       <td>{row.category}</td>
-                      <td>{row.batchNo}</td>
-                      <td>{row.costPrice}</td>
-                      <td>{row.salePrice}</td>
-                      <td>{row.stockQty}</td>
+                      <td>
+                        <div className="variant-tags">
+                          {row.variants.map((variant) => (
+                            <span key={variant.id} className="variant-chip">
+                              {variant.sku} · {formatUnitLabel(variant.unitSize, variant.unitType)} · {variant.stockQty} in stock
+                            </span>
+                          ))}
+                        </div>
+                      </td>
                       <td>
                         {canManage ? (
                           <div className="row-actions">
@@ -371,27 +579,31 @@ function ProductsPage() {
                   <table>
                     <thead>
                       <tr>
-                        <th>SKU</th>
                         <th>{t("products.productName")}</th>
                         <th>{t("products.category")}</th>
-                        <th>Cost Price</th>
-                        <th>{t("products.salePrice")}</th>
+                        <th>Variants</th>
                         <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {archivedRows.length === 0 ? (
                         <tr>
-                          <td colSpan="6" className="muted">No archived products.</td>
+                          <td colSpan="4" className="muted">No archived products.</td>
                         </tr>
                       ) : (
                         archivedRows.map((row) => (
                           <tr key={row.id}>
-                            <td>{row.sku}</td>
                             <td>{row.name}</td>
                             <td>{row.category}</td>
-                            <td>{row.costPrice}</td>
-                            <td>{row.salePrice}</td>
+                            <td>
+                              <div className="variant-tags">
+                                {row.variants.map((variant) => (
+                                  <span key={variant.id} className="variant-chip">
+                                    {variant.sku} · {formatUnitLabel(variant.unitSize, variant.unitType)}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
                             <td>
                               <button type="button" className="ghost" onClick={() => handleRestoreProduct(row.id)}>Restore</button>
                             </td>

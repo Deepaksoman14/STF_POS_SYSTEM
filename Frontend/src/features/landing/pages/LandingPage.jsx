@@ -18,6 +18,7 @@ const capabilities = [
     description: "Daily sales snapshots, bill counts, average ticket value, and low-stock visibility."
   }
 ];
+const COPYRIGHT_TEXT = `Copyright © ${new Date().getFullYear()} Soman Tech Foundry. All rights reserved.`;
 
 function LandingPage() {
   return (
@@ -56,6 +57,8 @@ function LandingPage() {
           ))}
         </section>
       </main>
+
+      <p className="app-copyright centered-copy">{COPYRIGHT_TEXT}</p>
     </div>
   );
 }

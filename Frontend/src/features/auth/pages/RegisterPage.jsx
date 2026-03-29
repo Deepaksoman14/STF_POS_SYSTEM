@@ -6,6 +6,7 @@ import { businessProfiles, defaultBusinessProfileId } from "../../../domain/busi
 import { useAuthStore } from "../../../store/authStore";
 
 const ADMIN_EMAIL = "somandeepak14@gmail.com";
+const COPYRIGHT_TEXT = `Copyright © ${new Date().getFullYear()} Soman Tech Foundry. All rights reserved.`;
 
 const initialForm = {
   businessName: "",
@@ -110,6 +111,7 @@ function RegisterPage() {
         {success && <p className="success-text">{success}</p>}
         <button type="submit" disabled={loading}>{loading ? t("auth.creating") : t("auth.createAccount")}</button>
         <p className="auth-switch">{t("auth.alreadyHaveAccount")} <Link to="/login">{t("common.signIn")}</Link></p>
+        <p className="app-copyright auth-copy">{COPYRIGHT_TEXT}</p>
       </form>
     </div>
   );
