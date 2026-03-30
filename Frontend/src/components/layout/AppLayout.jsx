@@ -1,29 +1,30 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { fetchBusinesses } from "../../api/userApi";
 import { useAuthStore } from "../../store/authStore";
 import { getBusinessProfile } from "../../utils/formatters";
 import { canAccess, routeConfig } from "../../app/permissions";
 import { useI18n } from "../../i18n/useI18n";
 
+const IMPERSONATION_ID_KEY = "impersonationBusinessId";
+const IMPERSONATION_NAME_KEY = "impersonationBusinessName";
+const IMPERSONATION_PROFILE_KEY = "impersonationBusinessProfileId";
+const COPYRIGHT_TEXT = `Copyright © ${new Date().getFullYear()} Soman Tech Foundry. All rights reserved.`;
+
 function AppLayout({ children }) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const profile = getBusinessProfile();
   const allowedNavItems = routeConfig.filter((item) => canAccess(user?.role, item.moduleKey));
-
-  const businessName = user?.businessName || profile.name;
-  const ownerName = user?.name || "User";
-  const ownerInitial = ownerName.charAt(0).toUpperCase();
-  const businessInitials = businessName
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("");
+  const isAdmin = String(user?.role || "").toLowerCase() === "admin";
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [now, setNow] = useState(new Date());
+  const [businesses, setBusinesses] = useState([]);
+  const [impersonationId, setImpersonationId] = useState(localStorage.getItem(IMPERSONATION_ID_KEY) || "");
+  const [impersonationName, setImpersonationName] = useState(localStorage.getItem(IMPERSONATION_NAME_KEY) || "");
+  const [impersonationProfileId, setImpersonationProfileId] = useState(localStorage.getItem(IMPERSONATION_PROFILE_KEY) || "");
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -47,8 +48,52 @@ function AppLayout({ children }) {
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (!isAdmin) {
+      localStorage.removeItem(IMPERSONATION_ID_KEY);
+      localStorage.removeItem(IMPERSONATION_NAME_KEY);
+      localStorage.removeItem(IMPERSONATION_PROFILE_KEY);
+      setImpersonationId("");
+      setImpersonationName("");
+      setImpersonationProfileId("");
+      return;
+    }
+
+    let active = true;
+    async function loadBusinesses() {
+      try {
+        const data = await fetchBusinesses();
+        if (!active) return;
+        setBusinesses(data);
+
+        if (!impersonationId && data.length > 0) {
+          applyImpersonation(data[0], { refresh: true });
+        }
+      } catch {
+        if (!active) return;
+        setBusinesses([]);
+      }
+    }
+
+    loadBusinesses();
+    return () => {
+      active = false;
+    };
+  }, [isAdmin]);
+
+  const effectiveBusinessName = isAdmin && impersonationName ? impersonationName : (user?.businessName || profile.name);
+
+  const ownerName = user?.name || t("layout.userFallback");
+  const ownerInitial = ownerName.charAt(0).toUpperCase();
+  const businessInitials = effectiveBusinessName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+
   const dateText = useMemo(() => {
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat(profile.locale || (language === "ta" ? "ta-IN" : "en-IN"), {
       weekday: "short",
       month: "short",
       day: "numeric",
@@ -56,10 +101,43 @@ function AppLayout({ children }) {
       hour: "numeric",
       minute: "2-digit"
     }).format(now);
-  }, [now]);
+  }, [now, profile.locale, language]);
+  const roleKey = `configuration.role_${String(user?.role || "").toLowerCase()}`;
+  const roleLabel = user?.role ? (t(roleKey) === roleKey ? user.role : t(roleKey)) : "-";
+
+  function applyImpersonation(business, options = {}) {
+    if (!business?.business_id) return;
+
+    localStorage.setItem(IMPERSONATION_ID_KEY, business.business_id);
+    localStorage.setItem(IMPERSONATION_NAME_KEY, business.business_name || "");
+    localStorage.setItem(IMPERSONATION_PROFILE_KEY, business.business_profile_id || "");
+
+    if (business.business_profile_id) {
+      localStorage.setItem("businessProfileId", business.business_profile_id);
+    }
+
+    setImpersonationId(business.business_id);
+    setImpersonationName(business.business_name || "");
+    setImpersonationProfileId(business.business_profile_id || "");
+
+    if (options.refresh) {
+      navigate(0);
+    }
+  }
+
+  function handleBusinessChange(event) {
+    const nextId = event.target.value;
+    const selected = businesses.find((item) => item.business_id === nextId);
+    if (selected) {
+      applyImpersonation(selected, { refresh: true });
+    }
+  }
 
   function handleLogout() {
     logout();
+    localStorage.removeItem(IMPERSONATION_ID_KEY);
+    localStorage.removeItem(IMPERSONATION_NAME_KEY);
+    localStorage.removeItem(IMPERSONATION_PROFILE_KEY);
     navigate("/");
   }
 
@@ -80,7 +158,7 @@ function AppLayout({ children }) {
 
         <div className="sidebar-footer">
           <p className="muted small">{t("layout.role")}</p>
-          <strong>{user?.role}</strong>
+          <strong>{roleLabel}</strong>
         </div>
       </aside>
 
@@ -90,8 +168,8 @@ function AppLayout({ children }) {
             <div className="topbar-brand-fill">
               <div className="brand-logo-mark">{businessInitials || "BS"}</div>
               <div className="brand-fill-text">
-                <p className="brand-fill-kicker">Business Workspace</p>
-                <h3>{businessName}</h3>
+                <p className="brand-fill-kicker">{t("layout.businessWorkspace")}</p>
+                <h3>{effectiveBusinessName}</h3>
               </div>
             </div>
 
@@ -100,18 +178,32 @@ function AppLayout({ children }) {
                 type="button"
                 className="account-initial-btn"
                 onClick={() => setMenuOpen((prev) => !prev)}
-                aria-label="Open account menu"
+                aria-label={t("layout.openAccountMenu")}
               >
                 {ownerInitial}
               </button>
 
               {menuOpen && (
                 <div className="account-popover">
-                  <p className="popover-label">Logged In User</p>
+                  <p className="popover-label">{t("layout.loggedInUser")}</p>
                   <p className="popover-value">{ownerName.toUpperCase()}</p>
 
-                  <p className="popover-label">Business</p>
-                  <p className="popover-value">{businessName.toUpperCase()}</p>
+                  <p className="popover-label">{t("layout.business")}</p>
+                  <p className="popover-value">{effectiveBusinessName.toUpperCase()}</p>
+
+                  {isAdmin && (
+                    <div className="popover-business-switch">
+                      <label className="popover-label">{t("layout.switchBusiness")}</label>
+                      <select value={impersonationId} onChange={handleBusinessChange}>
+                        {businesses.map((item) => (
+                          <option key={item.business_id} value={item.business_id}>
+                            {item.business_name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="muted small">{t("layout.switchRefreshHint")}</p>
+                    </div>
+                  )}
 
                   <p className="popover-time">{dateText}</p>
 
@@ -123,9 +215,12 @@ function AppLayout({ children }) {
         </header>
 
         <section className="page-enter">{children}</section>
+        <p className="app-copyright">{COPYRIGHT_TEXT}</p>
       </main>
     </div>
   );
 }
 
 export default AppLayout;
+
+

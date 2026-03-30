@@ -28,7 +28,7 @@ function resolveRoleForEmail(email) {
 }
 
 export async function register(payload) {
-  const { businessName, fullName, email, password } = payload;
+  const { businessName, businessProfileId, fullName, email, password } = payload;
   const normalizedEmail = normalizeEmail(email);
 
   const existingUser = await query("SELECT id FROM app_user WHERE email = $1", [normalizedEmail]);
@@ -40,11 +40,12 @@ export async function register(payload) {
   const approvalToken = crypto.randomBytes(32).toString("hex");
 
   await query(
-    `INSERT INTO signup_request (business_name, full_name, email, password_hash, approval_token, status)
-     VALUES ($1, $2, $3, $4, $5, 'pending')
+    `INSERT INTO signup_request (business_name, business_profile_id, full_name, email, password_hash, approval_token, status)
+     VALUES ($1, $2, $3, $4, $5, $6, 'pending')
      ON CONFLICT (email)
      DO UPDATE SET
        business_name = EXCLUDED.business_name,
+       business_profile_id = EXCLUDED.business_profile_id,
        full_name = EXCLUDED.full_name,
        password_hash = EXCLUDED.password_hash,
        approval_token = EXCLUDED.approval_token,
@@ -52,7 +53,7 @@ export async function register(payload) {
        approved_at = NULL,
        approved_by_email = NULL,
        requested_at = NOW()`,
-    [businessName, fullName, normalizedEmail, passwordHash, approvalToken]
+    [businessName, businessProfileId, fullName, normalizedEmail, passwordHash, approvalToken]
   );
 
   const approveUrl = `${env.BACKEND_PUBLIC_URL}/api/auth/approve?token=${approvalToken}`;
@@ -81,7 +82,7 @@ export async function approveSignupRequest(payload) {
     await client.query("BEGIN");
 
     const pendingResult = await client.query(
-      `SELECT id, business_name, full_name, email, password_hash
+      `SELECT id, business_name, business_profile_id, full_name, email, password_hash
        FROM signup_request
        WHERE approval_token = $1 AND status = 'pending'
        FOR UPDATE`,
@@ -96,11 +97,18 @@ export async function approveSignupRequest(payload) {
     const role = resolveRoleForEmail(request.email);
 
     await client.query(
-      `INSERT INTO app_user (business_name, full_name, email, password_hash, role, is_active)
-       VALUES ($1, $2, $3, $4, $5, true)
+      `INSERT INTO app_user (business_name, business_profile_id, full_name, email, password_hash, role, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, true)
        ON CONFLICT (email)
        DO UPDATE SET role = EXCLUDED.role, is_active = true`,
-      [request.business_name, request.full_name, request.email, request.password_hash, role]
+      [
+        request.business_name,
+        request.business_profile_id,
+        request.full_name,
+        request.email,
+        request.password_hash,
+        role
+      ]
     );
 
     await client.query(
@@ -129,7 +137,7 @@ export async function login(payload) {
   const normalizedEmail = normalizeEmail(email);
 
   const result = await query(
-    "SELECT id, business_name, full_name, email, password_hash, role, business_id, is_active FROM app_user WHERE email = $1",
+    "SELECT id, business_name, business_profile_id, full_name, email, password_hash, role, business_id, is_active FROM app_user WHERE email = $1",
     [normalizedEmail]
   );
 
@@ -164,7 +172,7 @@ export async function login(payload) {
       `UPDATE app_user
        SET role = 'admin', is_active = true
        WHERE id = $1
-       RETURNING id, business_name, full_name, email, role, business_id`,
+       RETURNING id, business_name, business_profile_id, full_name, email, role, business_id`,
       [user.id]
     );
 

@@ -1,30 +1,32 @@
-const fertilizerProfile = {
-  id: "fertilizer-retail",
-  name: "Fertilizer Shop",
-  currency: "INR",
-  locale: "en-IN",
-  modules: {
-    dashboard: true,
-    sales: true,
-    products: true,
-    inventory: true,
-    customers: true,
-    reports: true,
-    settings: true
-  },
-  productSchema: [
-    { key: "sku", label: "SKU", required: true },
-    { key: "name", label: "Product Name", required: true },
-    { key: "category", label: "Category", required: true },
-    { key: "batchNo", label: "Batch Number", required: true },
-    { key: "composition", label: "NPK Composition", required: false },
-    { key: "mrp", label: "MRP", required: true },
-    { key: "salePrice", label: "Sale Price", required: true }
-  ]
-};
+export const defaultBusinessProfileId = "fertilizer";
 
 export const businessProfiles = {
-  "fertilizer-retail": fertilizerProfile
+  fertilizer: {
+    name: "Fertilizer Business",
+    currency: "INR",
+    locale: "en-IN",
+    productFields: [
+      { key: "sku", label: "SKU", required: true },
+      { key: "name", label: "Product Name", required: true },
+      { key: "category", label: "Category", required: true },
+      { key: "costPrice", label: "Cost Price", required: true },
+      { key: "salePrice", label: "Sale Price", required: true },
+      { key: "stockQty", label: "Stock Qty", required: true },
+      { key: "reorderLevel", label: "Reorder Level", required: true }
+    ]
+  },
+  paint: {
+    name: "Paint Business",
+    currency: "INR",
+    locale: "en-IN",
+    productFields: [
+      { key: "sku", label: "SKU", required: true },
+      { key: "name", label: "Product Name", required: true },
+      { key: "category", label: "Category", required: true },
+      { key: "costPrice", label: "Cost Price", required: true },
+      { key: "salePrice", label: "Sale Price", required: true },
+      { key: "stockQty", label: "Stock Qty", required: true },
+      { key: "reorderLevel", label: "Reorder Level", required: true }
+    ]
+  }
 };
-
-export const defaultBusinessProfileId = "fertilizer-retail";

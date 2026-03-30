@@ -5,6 +5,7 @@ import { approveSignupRequest, login, register } from "./auth.service.js";
 
 const registerSchema = z.object({
   businessName: z.string().min(2),
+  businessProfileId: z.string().min(2),
   fullName: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6)

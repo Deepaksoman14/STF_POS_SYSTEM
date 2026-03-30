@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useLanguageStore } from "../store/languageStore";
 import { translations } from "./translations";
 
@@ -9,7 +10,7 @@ export function useI18n() {
   const language = useLanguageStore((state) => state.language);
   const setLanguage = useLanguageStore((state) => state.setLanguage);
 
-  function t(key, vars = {}) {
+  const t = useCallback((key, vars = {}) => {
     const activeDict = translations[language] || translations.en;
     const fallbackDict = translations.en;
     const activeValue = resolveKey(activeDict, key);
@@ -23,7 +24,7 @@ export function useI18n() {
     return template.replace(/\{(\w+)\}/g, (_match, varName) => {
       return vars[varName] !== undefined ? String(vars[varName]) : `{${varName}}`;
     });
-  }
+  }, [language]);
 
   return { language, setLanguage, t };
 }

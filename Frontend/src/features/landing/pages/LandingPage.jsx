@@ -1,49 +1,51 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
+import { useI18n } from "../../../i18n/useI18n";
 
-const capabilities = [
-  {
-    title: "Billing & Checkout",
-    description: "Fast POS billing with discounts, payment modes, and printable bill support-ready workflows."
-  },
-  {
-    title: "Product & Inventory",
-    description: "Central product catalog, stock tracking, reorder alerts, and structured SKU management."
-  },
-  {
-    title: "Customer Management",
-    description: "Maintain customer records, credit tracking, and transaction history visibility."
-  },
-  {
-    title: "Reports & Insights",
-    description: "Daily sales snapshots, bill counts, average ticket value, and low-stock visibility."
-  }
-];
+const COPYRIGHT_TEXT = `Copyright © ${new Date().getFullYear()} Soman Tech Foundry. All rights reserved.`;
 
 function LandingPage() {
+  const { t } = useI18n();
+
+  const capabilities = [
+    {
+      title: t("landing.capabilityBillingTitle"),
+      description: t("landing.capabilityBillingDesc")
+    },
+    {
+      title: t("landing.capabilityProductTitle"),
+      description: t("landing.capabilityProductDesc")
+    },
+    {
+      title: t("landing.capabilityCustomerTitle"),
+      description: t("landing.capabilityCustomerDesc")
+    },
+    {
+      title: t("landing.capabilityReportsTitle"),
+      description: t("landing.capabilityReportsDesc")
+    }
+  ];
+
   return (
     <div className="landing-page">
       <header className="landing-header">
         <div className="landing-brand">
-          <span className="brand-chip">Business Suite</span>
+          <span className="brand-chip">{t("landing.brandChip")}</span>
           <h1>POS Core</h1>
         </div>
         <div className="landing-auth-actions">
-          <Link to="/login" className="landing-link-btn">Login</Link>
-          <Link to="/register" className="landing-link-btn primary">Sign Up</Link>
+          <Link to="/login" className="landing-link-btn">{t("landing.login")}</Link>
+          <Link to="/register" className="landing-link-btn primary">{t("landing.signUp")}</Link>
         </div>
       </header>
 
       <main className="landing-main">
         <section className="landing-hero card">
-          <p className="landing-kicker">World Standard Retail POS Platform</p>
-          <h2>Run billing, inventory, customers, and reports from one secure system.</h2>
-          <p className="muted">
-            Built for operational reliability and fast adoption. New account requests are approval-based,
-            so your organization controls who gets access.
-          </p>
+          <p className="landing-kicker">{t("landing.kicker")}</p>
+          <h2>{t("landing.heroTitle")}</h2>
+          <p className="muted">{t("landing.heroDesc")}</p>
           <div className="landing-hero-cta">
-            <Link to="/register" className="landing-link-btn primary">Request Access</Link>
-            <Link to="/login" className="landing-link-btn">Existing Client Login</Link>
+            <Link to="/register" className="landing-link-btn primary">{t("landing.requestAccess")}</Link>
+            <Link to="/login" className="landing-link-btn">{t("landing.existingLogin")}</Link>
           </div>
         </section>
 
@@ -56,8 +58,12 @@ function LandingPage() {
           ))}
         </section>
       </main>
+
+      <p className="app-copyright centered-copy">{COPYRIGHT_TEXT}</p>
     </div>
   );
 }
 
 export default LandingPage;
+
+
