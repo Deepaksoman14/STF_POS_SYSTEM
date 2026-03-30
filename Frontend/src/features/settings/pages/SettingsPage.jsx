@@ -25,7 +25,7 @@ const defaultBillProfile = {
 };
 
 function SettingsPage() {
-  const { t } = useI18n();
+  const { t, setLanguage, language } = useI18n();
   const { user } = useAuthStore();
   const profile = getBusinessProfile();
   const [form, setForm] = useState({
@@ -49,7 +49,7 @@ function SettingsPage() {
         setBillProfile({ ...defaultBillProfile, ...(current?.billProfile || {}) });
       } catch (err) {
         if (!mounted) return;
-        setError(extractApiError(err, "Failed to load print templates"));
+        setError(extractApiError(err, t("settings.failedLoadPrintProfile")));
       }
     }
 
@@ -57,7 +57,7 @@ function SettingsPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [language]);
 
   async function handleSave() {
     setError("");
@@ -68,11 +68,12 @@ function SettingsPage() {
         locale: form.locale
       })
     );
+    setLanguage(String(form.locale || "").startsWith("ta") ? "ta" : "en");
 
     try {
       await updateCurrentPrintTemplate(printTemplateKey, billProfile);
     } catch (err) {
-      setError(extractApiError(err, "Failed to save print template"));
+      setError(extractApiError(err, t("settings.failedSavePrintProfile")));
       return;
     }
 
@@ -85,6 +86,7 @@ function SettingsPage() {
       currency: profile.currency,
       locale: profile.locale
     });
+    setLanguage(String(profile.locale || "").startsWith("ta") ? "ta" : "en");
     setBillProfile({ ...defaultBillProfile });
     setSavedText(t("settings.resetDone"));
   }
@@ -137,73 +139,73 @@ function SettingsPage() {
       </div>
 
       <div className="card section-gap">
-        <h3>Bill Profile</h3>
-        <p className="muted small">These values are used in the wholesale bill print format.</p>
+        <h3>{t("settings.billProfile")}</h3>
+        <p className="muted small">{t("settings.billProfileHint")}</p>
 
         <div className="bill-profile-form">
-          <h4>Licence Section</h4>
+          <h4>{t("settings.licenseSection")}</h4>
           <div className="bill-profile-grid">
             <label className="bill-profile-field">
-              <span>TIN No.</span>
-              <input placeholder="Enter TIN No." value={billProfile.tinNo} onChange={(e) => patchBillProfile("tinNo", e.target.value)} />
+              <span>{t("bill.tinNo")}</span>
+              <input placeholder={t("bill.enterTinNo")} value={billProfile.tinNo} onChange={(e) => patchBillProfile("tinNo", e.target.value)} />
             </label>
             <label className="bill-profile-field">
-              <span>CST No.</span>
-              <input placeholder="Enter CST No." value={billProfile.cstNo} onChange={(e) => patchBillProfile("cstNo", e.target.value)} />
+              <span>{t("bill.cstNo")}</span>
+              <input placeholder={t("bill.enterCstNo")} value={billProfile.cstNo} onChange={(e) => patchBillProfile("cstNo", e.target.value)} />
             </label>
             <label className="bill-profile-field">
-              <span>W.E.L No.</span>
-              <input placeholder="Enter W.E.L No." value={billProfile.welNo} onChange={(e) => patchBillProfile("welNo", e.target.value)} />
+              <span>{t("bill.welNo")}</span>
+              <input placeholder={t("bill.enterWelNo")} value={billProfile.welNo} onChange={(e) => patchBillProfile("welNo", e.target.value)} />
             </label>
             <label className="bill-profile-field">
-              <span>PL No.</span>
-              <input placeholder="Enter PL No." value={billProfile.plNo} onChange={(e) => patchBillProfile("plNo", e.target.value)} />
+              <span>{t("bill.plNo")}</span>
+              <input placeholder={t("bill.enterPlNo")} value={billProfile.plNo} onChange={(e) => patchBillProfile("plNo", e.target.value)} />
             </label>
             <label className="bill-profile-field">
-              <span>SL No.</span>
-              <input placeholder="Enter SL No." value={billProfile.slNo} onChange={(e) => patchBillProfile("slNo", e.target.value)} />
+              <span>{t("bill.slNo")}</span>
+              <input placeholder={t("bill.enterSlNo")} value={billProfile.slNo} onChange={(e) => patchBillProfile("slNo", e.target.value)} />
             </label>
             <label className="bill-profile-field">
-              <span>GSTIN</span>
-              <input placeholder="Enter GSTIN" value={billProfile.gstin} onChange={(e) => patchBillProfile("gstin", e.target.value)} />
+              <span>{t("bill.gstin")}</span>
+              <input placeholder={t("bill.enterGstin")} value={billProfile.gstin} onChange={(e) => patchBillProfile("gstin", e.target.value)} />
             </label>
           </div>
 
-          <h4>Address Section</h4>
+          <h4>{t("settings.addressSection")}</h4>
           <div className="bill-profile-grid">
             <label className="bill-profile-field">
-              <span>Business Name</span>
-              <input placeholder="Enter business name" value={billProfile.businessName} onChange={(e) => patchBillProfile("businessName", e.target.value)} />
+              <span>{t("settings.businessName")}</span>
+              <input placeholder={t("settings.enterBusinessName")} value={billProfile.businessName} onChange={(e) => patchBillProfile("businessName", e.target.value)} />
             </label>
             <label className="bill-profile-field">
-              <span>Business Description</span>
-              <input placeholder="Enter business description" value={billProfile.businessDescription} onChange={(e) => patchBillProfile("businessDescription", e.target.value)} />
+              <span>{t("settings.businessDescription")}</span>
+              <input placeholder={t("settings.enterBusinessDescription")} value={billProfile.businessDescription} onChange={(e) => patchBillProfile("businessDescription", e.target.value)} />
             </label>
             <label className="bill-profile-field">
-              <span>Address</span>
-              <input placeholder="Enter address" value={billProfile.address} onChange={(e) => patchBillProfile("address", e.target.value)} />
+              <span>{t("customers.address")}</span>
+              <input placeholder={t("settings.enterAddress")} value={billProfile.address} onChange={(e) => patchBillProfile("address", e.target.value)} />
             </label>
             <label className="bill-profile-field">
-              <span>City</span>
-              <input placeholder="Enter city" value={billProfile.city} onChange={(e) => patchBillProfile("city", e.target.value)} />
+              <span>{t("settings.city")}</span>
+              <input placeholder={t("settings.enterCity")} value={billProfile.city} onChange={(e) => patchBillProfile("city", e.target.value)} />
             </label>
           </div>
 
-          <h4>Other Section</h4>
+          <h4>{t("settings.otherSection")}</h4>
           <label className="bill-profile-field full-width">
-            <span>Terms and Conditions</span>
+            <span>{t("settings.termsAndConditions")}</span>
             <textarea
               rows={4}
-              placeholder="Enter terms and conditions"
+              placeholder={t("settings.enterTermsAndConditions")}
               value={billProfile.termsAndConditions}
               onChange={(e) => patchBillProfile("termsAndConditions", e.target.value)}
             />
           </label>
           <label className="bill-profile-field full-width">
-            <span>Disclaimer</span>
+            <span>{t("settings.disclaimer")}</span>
             <textarea
               rows={3}
-              placeholder="Enter disclaimer"
+              placeholder={t("settings.enterDisclaimer")}
               value={billProfile.disclaimer}
               onChange={(e) => patchBillProfile("disclaimer", e.target.value)}
             />

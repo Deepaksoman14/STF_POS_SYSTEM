@@ -1,7 +1,8 @@
 import { query } from "../../db/index.js";
 import { ApiError } from "../../utils/ApiError.js";
+import { resolveEntityTranslations, upsertEntityTranslations } from "../i18n/i18n.service.js";
 
-export async function listCustomers(businessId) {
+export async function listCustomers(businessId, locale) {
   const result = await query(
     `SELECT id, name, address, mobile, email, created_at
      FROM customer
@@ -10,10 +11,28 @@ export async function listCustomers(businessId) {
     [businessId]
   );
 
-  return result.rows;
+  const rows = result.rows;
+  const customerIds = rows.map((row) => row.id);
+  const translations = await resolveEntityTranslations(
+    null,
+    businessId,
+    "customer",
+    customerIds,
+    ["name", "address"],
+    locale
+  );
+
+  return rows.map((row) => {
+    const translated = translations.get(row.id) || {};
+    return {
+      ...row,
+      name: translated.name || row.name,
+      address: translated.address || row.address
+    };
+  });
 }
 
-export async function createCustomer(businessId, payload) {
+export async function createCustomer(businessId, payload, locale) {
   const result = await query(
     `INSERT INTO customer (business_id, name, address, mobile, email)
      VALUES ($1, $2, $3, $4, $5)
@@ -21,10 +40,22 @@ export async function createCustomer(businessId, payload) {
     [businessId, payload.name, payload.address, payload.mobile, payload.email]
   );
 
-  return result.rows[0];
+  const created = result.rows[0];
+  await upsertEntityTranslations(
+    null,
+    businessId,
+    "customer",
+    created.id,
+    locale,
+    {
+      name: payload.name,
+      address: payload.address
+    }
+  );
+  return created;
 }
 
-export async function updateCustomer(businessId, customerId, payload) {
+export async function updateCustomer(businessId, customerId, payload, locale) {
   const result = await query(
     `UPDATE customer
      SET name = $3,
@@ -40,7 +71,19 @@ export async function updateCustomer(businessId, customerId, payload) {
     throw new ApiError(404, "Customer not found");
   }
 
-  return result.rows[0];
+  const updated = result.rows[0];
+  await upsertEntityTranslations(
+    null,
+    businessId,
+    "customer",
+    updated.id,
+    locale,
+    {
+      name: payload.name,
+      address: payload.address
+    }
+  );
+  return updated;
 }
 
 export async function deleteCustomer(businessId, customerId) {

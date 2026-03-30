@@ -7,6 +7,21 @@ const api = axios.create({
   timeout: 15000
 });
 
+function resolveLocaleHeader() {
+  const appLanguage = String(localStorage.getItem("appLanguage") || "en").toLowerCase();
+  if (appLanguage === "ta") return "ta-IN";
+
+  try {
+    const override = JSON.parse(localStorage.getItem("businessProfileOverride") || "{}");
+    const locale = String(override?.locale || "").trim();
+    if (locale) return locale;
+  } catch {
+    // ignore malformed local storage and continue with app language
+  }
+
+  return "en-IN";
+}
+
 function handleSessionExpiry() {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("authUser");
@@ -28,6 +43,7 @@ api.interceptors.request.use((config) => {
   if (impersonationId) {
     config.headers["x-business-id"] = impersonationId;
   }
+  config.headers["x-locale"] = resolveLocaleHeader();
 
   return config;
 });

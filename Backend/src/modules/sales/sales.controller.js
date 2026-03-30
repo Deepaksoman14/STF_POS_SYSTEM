@@ -38,6 +38,6 @@ export const listSalesController = asyncHandler(async (req, res) => {
 
 export const createSaleController = asyncHandler(async (req, res) => {
   const payload = createSaleSchema.parse(req.body);
-  const data = await createSale(req.user.businessId, payload);
+  const data = await createSale(req.user.businessId, payload, req.locale);
   res.status(201).json({ success: true, data });
 });

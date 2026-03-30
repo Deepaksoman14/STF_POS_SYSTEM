@@ -1,5 +1,6 @@
 import { query } from "../../db/index.js";
 import { ApiError } from "../../utils/ApiError.js";
+import { getLocaleFallbacks, normalizeLocale } from "../i18n/i18n.service.js";
 
 const TEMPLATE_DEFAULTS = [
   {
@@ -51,6 +52,10 @@ async function ensureBusinessSettingSchema() {
     `ALTER TABLE business_setting
      ADD COLUMN IF NOT EXISTS bill_profile JSONB NOT NULL DEFAULT '{}'::jsonb`
   );
+  await query(
+    `ALTER TABLE business_setting
+     ADD COLUMN IF NOT EXISTS bill_profile_i18n JSONB NOT NULL DEFAULT '{}'::jsonb`
+  );
 }
 
 function normalizeBillProfile(input) {
@@ -71,12 +76,13 @@ export async function listPrintTemplates() {
   return result.rows;
 }
 
-export async function getCurrentPrintTemplate(businessId) {
+export async function getCurrentPrintTemplate(businessId, locale) {
   await ensureTemplateCatalog();
   await ensureBusinessSettingSchema();
 
+  const localeCandidates = getLocaleFallbacks(locale);
   const result = await query(
-    `SELECT bs.print_template_key, bs.bill_profile
+    `SELECT bs.print_template_key, bs.bill_profile, bs.bill_profile_i18n
      FROM business_setting bs
      JOIN print_template pt ON pt.template_key = bs.print_template_key
      WHERE bs.business_id = $1 AND pt.is_active = true`,
@@ -84,9 +90,15 @@ export async function getCurrentPrintTemplate(businessId) {
   );
 
   if (result.rowCount > 0) {
+    const row = result.rows[0];
+    const i18nMap = row.bill_profile_i18n || {};
+    const localeProfile = localeCandidates
+      .map((candidate) => i18nMap[candidate])
+      .find((candidate) => candidate && typeof candidate === "object");
+
     return {
-      templateKey: result.rows[0].print_template_key,
-      billProfile: normalizeBillProfile(result.rows[0].bill_profile)
+      templateKey: row.print_template_key,
+      billProfile: normalizeBillProfile(localeProfile || row.bill_profile)
     };
   }
 
@@ -96,9 +108,12 @@ export async function getCurrentPrintTemplate(businessId) {
   };
 }
 
-export async function setCurrentPrintTemplate(businessId, templateKey, billProfile) {
+export async function setCurrentPrintTemplate(businessId, locale, templateKey, billProfile) {
   await ensureTemplateCatalog();
   await ensureBusinessSettingSchema();
+  const targetLocale = normalizeLocale(locale);
+  const normalizedProfile = normalizeBillProfile(billProfile);
+  const localePayload = JSON.stringify({ [targetLocale]: normalizedProfile });
 
   const templateRes = await query(
     `SELECT template_key
@@ -112,17 +127,18 @@ export async function setCurrentPrintTemplate(businessId, templateKey, billProfi
   }
 
   await query(
-    `INSERT INTO business_setting (business_id, print_template_key, bill_profile, updated_at)
-     VALUES ($1, $2, $3::jsonb, NOW())
+    `INSERT INTO business_setting (business_id, print_template_key, bill_profile, bill_profile_i18n, updated_at)
+     VALUES ($1, $2, $3::jsonb, $4::jsonb, NOW())
      ON CONFLICT (business_id)
      DO UPDATE SET print_template_key = EXCLUDED.print_template_key,
                    bill_profile = EXCLUDED.bill_profile,
+                   bill_profile_i18n = COALESCE(business_setting.bill_profile_i18n, '{}'::jsonb) || EXCLUDED.bill_profile_i18n,
                    updated_at = NOW()`,
-    [businessId, templateKey, JSON.stringify(normalizeBillProfile(billProfile))]
+    [businessId, templateKey, JSON.stringify(normalizedProfile), localePayload]
   );
 
   return {
     templateKey,
-    billProfile: normalizeBillProfile(billProfile)
+    billProfile: normalizedProfile
   };
 }

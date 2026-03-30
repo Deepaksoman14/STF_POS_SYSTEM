@@ -5,6 +5,7 @@ import morgan from "morgan";
 import routes from "./routes/index.js";
 import { notFoundHandler } from "./middleware/notFound.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { localeMiddleware } from "./middleware/locale.js";
 import env from "./config/env.js";
 
 const app = express();
@@ -26,6 +27,7 @@ app.use(helmet());
 app.use(cors({ origin: parseCorsOrigins(env.CORS_ORIGIN), credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
+app.use(localeMiddleware);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "enterprise-pos-backend" });

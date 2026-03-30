@@ -16,7 +16,7 @@ const PAGE_SIZE = 5;
 
 function CustomersPage() {
   const { user } = useAuthStore();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -65,7 +65,7 @@ function CustomersPage() {
         );
       } catch (err) {
         if (mounted) {
-          setError(extractApiError(err, "Failed to load customers"));
+          setError(extractApiError(err, t("customers.failedLoad")));
         }
       } finally {
         if (mounted) {
@@ -79,7 +79,7 @@ function CustomersPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [language]);
 
   const filteredSortedRows = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -137,7 +137,7 @@ function CustomersPage() {
       setForm(initialForm);
       setSuccessText(t("customers.success"));
     } catch (err) {
-      setError(extractApiError(err, "Failed to create customer"));
+      setError(extractApiError(err, t("customers.failedCreate")));
     } finally {
       setSubmitting(false);
     }
@@ -172,16 +172,16 @@ function CustomersPage() {
       await loadCustomers();
       setEditingId("");
       setEditForm(initialForm);
-      setSuccessText("Customer updated successfully.");
+      setSuccessText(t("customers.updated"));
     } catch (err) {
-      setError(extractApiError(err, "Failed to update customer"));
+      setError(extractApiError(err, t("customers.failedUpdate")));
     } finally {
       setSubmitting(false);
     }
   }
 
   async function handleDeleteCustomer(id) {
-    if (!window.confirm("Delete this customer?")) return;
+    if (!window.confirm(t("customers.confirmDelete"))) return;
 
     setError("");
     setSuccessText("");
@@ -189,9 +189,9 @@ function CustomersPage() {
     try {
       await deleteCustomer(id);
       await loadCustomers();
-      setSuccessText("Customer deleted successfully.");
+      setSuccessText(t("customers.deleted"));
     } catch (err) {
-      setError(extractApiError(err, "Failed to delete customer"));
+      setError(extractApiError(err, t("customers.failedDelete")));
     }
   }
 
@@ -217,7 +217,7 @@ function CustomersPage() {
 
       {canManage && editingId && (
         <form className="card section-gap" onSubmit={handleUpdateCustomer}>
-          <h3>Edit Customer</h3>
+          <h3>{t("customers.editCustomer")}</h3>
           <div className="form-grid">
             <input placeholder={t("customers.enterName")} value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} required />
             <input placeholder={t("customers.enterAddress")} value={editForm.address} onChange={(e) => setEditForm((p) => ({ ...p, address: e.target.value }))} />
@@ -225,8 +225,8 @@ function CustomersPage() {
             <input type="email" placeholder={t("customers.enterEmail")} value={editForm.email} onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))} />
           </div>
           <div className="actions">
-            <button type="button" className="ghost" onClick={() => setEditingId("")}>Cancel</button>
-            <button type="submit" disabled={submitting}>{submitting ? "Saving..." : "Update Customer"}</button>
+            <button type="button" className="ghost" onClick={() => setEditingId("")}>{t("common.cancel")}</button>
+            <button type="submit" disabled={submitting}>{submitting ? t("customers.saving") : t("customers.updateCustomer")}</button>
           </div>
         </form>
       )}
@@ -241,14 +241,14 @@ function CustomersPage() {
           <div className="table-toolbar">
             <input
               className="table-search"
-              placeholder="Search by name, mobile, email, address"
+              placeholder={t("customers.searchPlaceholder")}
               value={searchTerm}
               onChange={(event) => {
                 setSearchTerm(event.target.value);
                 setPage(1);
               }}
             />
-            <p className="muted small">Showing {pagedRows.length} of {filteredSortedRows.length} records</p>
+            <p className="muted small">{t("customers.showingRecords", { count: pagedRows.length, total: filteredSortedRows.length })}</p>
           </div>
 
           <div className="table-scroll">
@@ -259,7 +259,7 @@ function CustomersPage() {
                   <th><button type="button" className="table-sort-btn" onClick={() => handleSort("mobile")}>{t("customers.mobile")}</button></th>
                   <th><button type="button" className="table-sort-btn" onClick={() => handleSort("email")}>{t("customers.email")}</button></th>
                   <th><button type="button" className="table-sort-btn" onClick={() => handleSort("address")}>{t("customers.address")}</button></th>
-                  <th>Actions</th>
+                  <th>{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -272,8 +272,8 @@ function CustomersPage() {
                     <td>
                       {canManage ? (
                         <div className="row-actions">
-                          <button type="button" className="ghost" onClick={() => beginEdit(row)}>Edit</button>
-                          <button type="button" className="ghost danger-ghost" onClick={() => handleDeleteCustomer(row.id)}>Delete</button>
+                          <button type="button" className="ghost" onClick={() => beginEdit(row)}>{t("common.edit")}</button>
+                          <button type="button" className="ghost danger-ghost" onClick={() => handleDeleteCustomer(row.id)}>{t("common.delete")}</button>
                         </div>
                       ) : "-"}
                     </td>
@@ -284,9 +284,9 @@ function CustomersPage() {
           </div>
 
           <div className="pagination-row">
-            <button type="button" className="ghost" disabled={currentPage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Previous</button>
-            <p className="small muted">Page {currentPage} of {totalPages}</p>
-            <button type="button" className="ghost" disabled={currentPage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</button>
+            <button type="button" className="ghost" disabled={currentPage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{t("common.previous")}</button>
+            <p className="small muted">{t("common.pageOf", { page: currentPage, total: totalPages })}</p>
+            <button type="button" className="ghost" disabled={currentPage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{t("common.next")}</button>
           </div>
         </div>
       )}

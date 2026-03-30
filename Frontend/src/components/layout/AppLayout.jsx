@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { fetchBusinesses } from "../../api/userApi";
 import { useAuthStore } from "../../store/authStore";
@@ -14,7 +14,7 @@ const COPYRIGHT_TEXT = `Copyright © ${new Date().getFullYear()} Soman Tech Foun
 function AppLayout({ children }) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const profile = getBusinessProfile();
   const allowedNavItems = routeConfig.filter((item) => canAccess(user?.role, item.moduleKey));
   const isAdmin = String(user?.role || "").toLowerCase() === "admin";
@@ -83,7 +83,7 @@ function AppLayout({ children }) {
 
   const effectiveBusinessName = isAdmin && impersonationName ? impersonationName : (user?.businessName || profile.name);
 
-  const ownerName = user?.name || "User";
+  const ownerName = user?.name || t("layout.userFallback");
   const ownerInitial = ownerName.charAt(0).toUpperCase();
   const businessInitials = effectiveBusinessName
     .split(" ")
@@ -93,7 +93,7 @@ function AppLayout({ children }) {
     .join("");
 
   const dateText = useMemo(() => {
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat(profile.locale || (language === "ta" ? "ta-IN" : "en-IN"), {
       weekday: "short",
       month: "short",
       day: "numeric",
@@ -101,7 +101,9 @@ function AppLayout({ children }) {
       hour: "numeric",
       minute: "2-digit"
     }).format(now);
-  }, [now]);
+  }, [now, profile.locale, language]);
+  const roleKey = `configuration.role_${String(user?.role || "").toLowerCase()}`;
+  const roleLabel = user?.role ? (t(roleKey) === roleKey ? user.role : t(roleKey)) : "-";
 
   function applyImpersonation(business, options = {}) {
     if (!business?.business_id) return;
@@ -156,7 +158,7 @@ function AppLayout({ children }) {
 
         <div className="sidebar-footer">
           <p className="muted small">{t("layout.role")}</p>
-          <strong>{user?.role}</strong>
+          <strong>{roleLabel}</strong>
         </div>
       </aside>
 
@@ -166,7 +168,7 @@ function AppLayout({ children }) {
             <div className="topbar-brand-fill">
               <div className="brand-logo-mark">{businessInitials || "BS"}</div>
               <div className="brand-fill-text">
-                <p className="brand-fill-kicker">Business Workspace</p>
+                <p className="brand-fill-kicker">{t("layout.businessWorkspace")}</p>
                 <h3>{effectiveBusinessName}</h3>
               </div>
             </div>
@@ -176,22 +178,22 @@ function AppLayout({ children }) {
                 type="button"
                 className="account-initial-btn"
                 onClick={() => setMenuOpen((prev) => !prev)}
-                aria-label="Open account menu"
+                aria-label={t("layout.openAccountMenu")}
               >
                 {ownerInitial}
               </button>
 
               {menuOpen && (
                 <div className="account-popover">
-                  <p className="popover-label">Logged In User</p>
+                  <p className="popover-label">{t("layout.loggedInUser")}</p>
                   <p className="popover-value">{ownerName.toUpperCase()}</p>
 
-                  <p className="popover-label">Business</p>
+                  <p className="popover-label">{t("layout.business")}</p>
                   <p className="popover-value">{effectiveBusinessName.toUpperCase()}</p>
 
                   {isAdmin && (
                     <div className="popover-business-switch">
-                      <label className="popover-label">Switch Business</label>
+                      <label className="popover-label">{t("layout.switchBusiness")}</label>
                       <select value={impersonationId} onChange={handleBusinessChange}>
                         {businesses.map((item) => (
                           <option key={item.business_id} value={item.business_id}>
@@ -199,7 +201,7 @@ function AppLayout({ children }) {
                           </option>
                         ))}
                       </select>
-                      <p className="muted small">Switching refreshes app data.</p>
+                      <p className="muted small">{t("layout.switchRefreshHint")}</p>
                     </div>
                   )}
 
@@ -220,3 +222,5 @@ function AppLayout({ children }) {
 }
 
 export default AppLayout;
+
+

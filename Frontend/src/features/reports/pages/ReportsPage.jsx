@@ -7,7 +7,7 @@ import { formatCurrency, getBusinessProfile } from "../../../utils/formatters";
 
 function ReportsPage() {
   const profile = getBusinessProfile();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -22,7 +22,7 @@ function ReportsPage() {
         setSales(data);
       } catch (err) {
         if (mounted) {
-          setError(extractApiError(err, "Failed to load reports"));
+          setError(extractApiError(err, t("reports.failedLoad")));
         }
       } finally {
         if (mounted) {
@@ -36,7 +36,7 @@ function ReportsPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [language]);
 
   const summary = useMemo(() => {
     const grossSales = sales.reduce((sum, item) => sum + Number(item.net_total || 0), 0);

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { extractApiError } from "../../../api/client";
 import { useI18n } from "../../../i18n/useI18n";
@@ -16,10 +16,8 @@ function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
 
   const approvedMessage = useMemo(() => {
-    return searchParams.get("approved") === "1"
-      ? "Signup approved. The client can now login with registered credentials."
-      : "";
-  }, [searchParams]);
+    return searchParams.get("approved") === "1" ? t("auth.approvedMessage") : "";
+  }, [searchParams, t]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -30,7 +28,7 @@ function LoginPage() {
       await login(form);
       navigate("/app");
     } catch (err) {
-      setError(extractApiError(err, "Unable to login"));
+      setError(extractApiError(err, t("auth.loginFailed")));
     } finally {
       setLoading(false);
     }
@@ -66,3 +64,5 @@ function LoginPage() {
 }
 
 export default LoginPage;
+
+

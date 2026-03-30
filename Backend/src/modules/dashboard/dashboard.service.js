@@ -1,4 +1,5 @@
 import { query } from "../../db/index.js";
+import { resolveEntityTranslations } from "../i18n/i18n.service.js";
 
 function buildDateRangeClause(alias, fromDate, toDate, params) {
   const filters = [];
@@ -16,7 +17,7 @@ function buildDateRangeClause(alias, fromDate, toDate, params) {
   return filters.length > 0 ? ` AND ${filters.join(" AND ")}` : "";
 }
 
-export async function getSummary(businessId, { fromDate, toDate } = {}) {
+export async function getSummary(businessId, { fromDate, toDate, locale } = {}) {
   const poTableRes = await query(
     "SELECT to_regclass('public.purchase_order') IS NOT NULL AS exists"
   );
@@ -41,6 +42,7 @@ export async function getSummary(businessId, { fromDate, toDate } = {}) {
                 s.net_total,
                 s.created_by,
                 s.created_at,
+                s.customer_id,
                 COALESCE(c.name, 'Walk-in') AS customer_name,
                 CASE
                   WHEN s.order_type = 'wholesale' THEN 'wholesale_order'
@@ -61,6 +63,7 @@ export async function getSummary(businessId, { fromDate, toDate } = {}) {
                 po.net_total,
                 po.created_by,
                 po.created_at,
+                NULL::uuid AS customer_id,
                 COALESCE(NULLIF(po.supplier_name, ''), '-') AS customer_name,
                 'purchase_order'::text AS bill_type
          FROM purchase_order po
@@ -80,6 +83,7 @@ export async function getSummary(businessId, { fromDate, toDate } = {}) {
               s.net_total,
               s.created_by,
               s.created_at,
+              s.customer_id,
               COALESCE(c.name, 'Walk-in') AS customer_name,
               CASE
                 WHEN s.order_type = 'wholesale' THEN 'wholesale_order'
@@ -164,13 +168,31 @@ export async function getSummary(businessId, { fromDate, toDate } = {}) {
   const totalSales = Number(totalsRes.rows[0].total_sales || 0);
   const totalProfit = Number(profitRes.rows[0].total_profit || 0);
   const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
+  const customerIds = recentBills.rows
+    .map((row) => row.customer_id)
+    .filter(Boolean);
+  const customerTranslations = await resolveEntityTranslations(
+    null,
+    businessId,
+    "customer",
+    customerIds,
+    ["name"],
+    locale
+  );
+  const localizedRecentBills = recentBills.rows.map((row) => {
+    const translated = row.customer_id ? customerTranslations.get(row.customer_id) : null;
+    return {
+      ...row,
+      customer_name: translated?.name || row.customer_name
+    };
+  });
 
   return {
     todaySales: todaySalesRes.rows[0].today_sales,
     billsCount: todaySalesRes.rows[0].bills_count,
     lowStockItems: lowStock.rows[0].low_stock,
     avgBillValue: billsCount > 0 ? (todaySales / billsCount).toFixed(2) : "0.00",
-    recentBills: recentBills.rows,
+    recentBills: localizedRecentBills,
     totalSales: totalsRes.rows[0].total_sales,
     totalInvoices: totalsRes.rows[0].total_invoices,
     totalQtySold: qtyRes.rows[0].total_qty,

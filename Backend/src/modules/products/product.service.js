@@ -1,6 +1,7 @@
 import { query } from "../../db/index.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { getLocationMap } from "../inventory/inventoryLocation.service.js";
+import { resolveEntityTranslations, upsertEntityTranslations } from "../i18n/i18n.service.js";
 
 const productSelect = "p.id, p.name, p.category, p.created_at";
 const dbRunner = { query };
@@ -42,7 +43,7 @@ function groupProducts(rows) {
   return Array.from(byId.values());
 }
 
-export async function listProducts(businessId) {
+export async function listProducts(businessId, locale) {
   const result = await query(
     `SELECT ${productSelect},
             v.id AS variant_id,
@@ -77,10 +78,28 @@ export async function listProducts(businessId) {
     [businessId]
   );
 
-  return groupProducts(result.rows);
+  const products = groupProducts(result.rows);
+  const productIds = products.map((item) => item.id);
+  const translations = await resolveEntityTranslations(
+    null,
+    businessId,
+    "product",
+    productIds,
+    ["name", "category"],
+    locale
+  );
+
+  return products.map((product) => {
+    const translated = translations.get(product.id) || {};
+    return {
+      ...product,
+      name: translated.name || product.name,
+      category: translated.category || product.category
+    };
+  });
 }
 
-export async function listArchivedProducts(businessId) {
+export async function listArchivedProducts(businessId, locale) {
   const result = await query(
     `SELECT ${productSelect},
             v.id AS variant_id,
@@ -115,7 +134,25 @@ export async function listArchivedProducts(businessId) {
     [businessId]
   );
 
-  return groupProducts(result.rows);
+  const products = groupProducts(result.rows);
+  const productIds = products.map((item) => item.id);
+  const translations = await resolveEntityTranslations(
+    null,
+    businessId,
+    "product",
+    productIds,
+    ["name", "category"],
+    locale
+  );
+
+  return products.map((product) => {
+    const translated = translations.get(product.id) || {};
+    return {
+      ...product,
+      name: translated.name || product.name,
+      category: translated.category || product.category
+    };
+  });
 }
 
 async function upsertVariants(businessId, productId, variants) {
@@ -245,7 +282,7 @@ async function upsertVariants(businessId, productId, variants) {
   }
 }
 
-export async function createProduct(businessId, payload) {
+export async function createProduct(businessId, payload, locale) {
   const result = await query(
     `INSERT INTO product (business_id, name, category, is_active)
      VALUES ($1, $2, $3, true)
@@ -258,12 +295,23 @@ export async function createProduct(businessId, payload) {
   );
 
   const productId = result.rows[0].id;
+  await upsertEntityTranslations(
+    null,
+    businessId,
+    "product",
+    productId,
+    locale,
+    {
+      name: payload.name,
+      category: payload.category
+    }
+  );
   await upsertVariants(businessId, productId, payload.variants);
 
   return { id: productId };
 }
 
-export async function updateProduct(businessId, productId, payload) {
+export async function updateProduct(businessId, productId, payload, locale) {
   const result = await query(
     `UPDATE product
      SET name = $3,
@@ -281,6 +329,18 @@ export async function updateProduct(businessId, productId, payload) {
   if (result.rowCount === 0) {
     throw new ApiError(404, "Product not found");
   }
+
+  await upsertEntityTranslations(
+    null,
+    businessId,
+    "product",
+    productId,
+    locale,
+    {
+      name: payload.name,
+      category: payload.category
+    }
+  );
 
   await upsertVariants(businessId, productId, payload.variants);
 

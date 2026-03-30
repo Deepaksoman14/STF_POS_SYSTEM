@@ -1,4 +1,5 @@
-import { formatCurrency } from "./formatters";
+﻿import { formatCurrency } from "./formatters";
+import { translations } from "../i18n/translations";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -24,8 +25,51 @@ function openAndPrint(html, features = "width=900,height=700") {
   return true;
 }
 
+function getPrintLabels(locale = "en-IN") {
+  const lang = String(locale || "").toLowerCase().startsWith("ta") ? "ta" : "en";
+  const dict = translations[lang] || translations.en;
+  const fallback = translations.en;
+  const resolve = (path) => path.split(".").reduce((acc, part) => acc?.[part], dict)
+    ?? path.split(".").reduce((acc, part) => acc?.[part], fallback)
+    ?? path;
+
+  return {
+    invoice: resolve("print.invoice"),
+    billNo: resolve("print.billNo"),
+    date: resolve("print.date"),
+    customer: resolve("print.customer"),
+    buyerSignature: resolve("print.buyerSignature"),
+    forLabel: resolve("print.forLabel"),
+    mrs: resolve("print.mrs"),
+    terms: resolve("print.terms"),
+    weight: resolve("print.weight"),
+    particulars: resolve("print.particulars"),
+    bags: resolve("print.bags"),
+    rateRs: resolve("print.rateRs"),
+    amountRs: resolve("print.amountRs"),
+    rupees: resolve("print.rupees"),
+    item: resolve("print.item"),
+    spec: resolve("print.spec"),
+    qty: resolve("print.qty"),
+    amount: resolve("print.amount"),
+    total: resolve("print.total"),
+    sgst: resolve("print.sgst"),
+    cgst: resolve("print.cgst"),
+    grandTotal: resolve("print.grandTotal"),
+    disclaimer: resolve("print.disclaimer"),
+    retail: resolve("billType.retail_order"),
+    wholesale: resolve("billType.wholesale_order"),
+    walkIn: resolve("common.walkIn"),
+    plNo: resolve("bill.plNo"),
+    slNo: resolve("bill.slNo"),
+    gstin: resolve("bill.gstin"),
+    flPlSlNo: resolve("bill.flPlSlNo")
+  };
+}
+
 function printWholesaleFormat(bill, profile, billProfile = {}) {
   const locale = profile?.locale || "en-IN";
+  const labels = getPrintLabels(locale);
   const bp = { ...billProfile };
   const businessName = bp.businessName || bill.businessName || "";
   const businessDescription = bp.businessDescription || "";
@@ -183,7 +227,7 @@ function printWholesaleFormat(bill, profile, billProfile = {}) {
         <div class="sheet">
           <div class="top">
             <div class="left-box">
-              <div class="title">INVOICE</div>
+              <div class="title">${escapeHtml(labels.invoice)}</div>
               <div>TIN. No.&nbsp;&nbsp;${escapeHtml(bp.tinNo || "-")}</div>
               <div>CST. No.&nbsp;${escapeHtml(bp.cstNo || "-")}</div>
               <div>W.E.L. No.&nbsp;${escapeHtml(bp.welNo || "-")}</div>
@@ -201,14 +245,14 @@ function printWholesaleFormat(bill, profile, billProfile = {}) {
               </div>
               <div class="invoice-meta">
                 <div class="meta-line">
-                  <div class="meta-label-left">Bill No</div>
+                  <div class="meta-label-left">${escapeHtml(labels.billNo)}</div>
                   <div class="meta-right">
                     <div class="meta-value">${escapeHtml(String(bill.billNo))}</div>
                     <div class="meta-dots"></div>
                   </div>
                 </div>
                 <div class="meta-line">
-                  <div class="meta-label-left">Date</div>
+                  <div class="meta-label-left">${escapeHtml(labels.date)}</div>
                   <div class="meta-right">
                     <div class="meta-value">${escapeHtml(billDate.split(",")[0] || billDate)}</div>
                     <div class="meta-dots"></div>
@@ -219,10 +263,10 @@ function printWholesaleFormat(bill, profile, billProfile = {}) {
           </div>
 
           <div class="mid">
-            <div class="line"><span>M/s</span><span class="line-value">${escapeHtml(bill.customerName || "-")}</span></div>
+            <div class="line"><span>${escapeHtml(labels.mrs)}</span><span class="line-value">${escapeHtml(bill.customerName || "-")}</span></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
               <div class="line"><span>TIN. No</span><span class="line-value">${escapeHtml(tinDisplay)}</span></div>
-              <div class="line"><span>F.L / P.L / S.L No.</span><span class="line-value">${escapeHtml(flPlSlDisplay)}</span></div>
+              <div class="line"><span>${escapeHtml(labels.flPlSlNo)}</span><span class="line-value">${escapeHtml(flPlSlDisplay)}</span></div>
             </div>
           </div>
 
@@ -230,39 +274,39 @@ function printWholesaleFormat(bill, profile, billProfile = {}) {
             <table>
               <thead>
                 <tr>
-                  <th style="width:90px">WEIGHT</th>
-                  <th>PARTICULARS</th>
-                  <th style="width:70px">BAGS</th>
-                  <th style="width:70px">RATE Rs.</th>
+                  <th style="width:90px">${escapeHtml(labels.weight)}</th>
+                  <th>${escapeHtml(labels.particulars)}</th>
+                  <th style="width:70px">${escapeHtml(labels.bags)}</th>
+                  <th style="width:70px">${escapeHtml(labels.rateRs)}</th>
                   <th style="width:45px">Ps.</th>
-                  <th style="width:80px">AMOUNT Rs.</th>
+                  <th style="width:80px">${escapeHtml(labels.amountRs)}</th>
                   <th style="width:45px">Ps.</th>
                 </tr>
               </thead>
               <tbody>
                 ${linesHtml || '<tr class="empty-row"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>'}
-                <tr class="tot"><td colspan="2">TOTAL</td><td></td><td></td><td></td><td>${escapeHtml(totalParts.rs)}</td><td>${escapeHtml(totalParts.ps)}</td></tr>
+                <tr class="tot"><td colspan="2">${escapeHtml(labels.total.toUpperCase())}</td><td></td><td></td><td></td><td>${escapeHtml(totalParts.rs)}</td><td>${escapeHtml(totalParts.ps)}</td></tr>
               </tbody>
             </table>
           </div>
 
           <div class="footer">
             <div class="rupees-line">
-              <span>Rupees</span>
+              <span>${escapeHtml(labels.rupees)}</span>
               <span class="rupees-right">
                 <span class="rupees-value">${escapeHtml(formatCurrency(bill.netTotal, profile?.currency || "INR", locale))}</span>
                 <span class="rupees-dots"></span>
               </span>
             </div>
             <div class="terms-wrap">
-              <div class="terms-title">TERMS & CONDITIONS :</div>
+              <div class="terms-title">${escapeHtml(labels.terms)} :</div>
               ${termsLines.length > 0
                 ? termsLines.map((line, index) => `<div class="terms">${index + 1}) ${escapeHtml(line)}</div>`).join("")
                 : '<div class="terms">1)</div>'}
             </div>
             <div class="sign">
-              <span>Buyer's signature</span>
-              <span>For : ${escapeHtml(businessName || bill.businessName || "")}</span>
+              <span>${escapeHtml(labels.buyerSignature)}</span>
+              <span>${escapeHtml(labels.forLabel)} : ${escapeHtml(businessName || bill.businessName || "")}</span>
             </div>
             <p class="copyright">Copyright &copy; ${new Date().getFullYear()} Soman Tech Foundry. All rights reserved.</p>
           </div>
@@ -278,7 +322,8 @@ function printWholesaleFormat(bill, profile, billProfile = {}) {
 function printThermalBill(bill, profile, billProfile = {}) {
   const currency = profile?.currency || "INR";
   const locale = profile?.locale || "en-IN";
-  const orderLabel = bill.orderType === "wholesale" ? "WHOLESALE" : "RETAIL";
+  const labels = getPrintLabels(locale);
+  const orderLabel = bill.orderType === "wholesale" ? labels.wholesale : labels.retail;
   const headerTitle = billProfile?.businessName || bill.businessName || "Soman Tech Foundry";
   const subTitle = billProfile?.businessDescription || "";
   const address = billProfile?.address || "";
@@ -287,7 +332,7 @@ function printThermalBill(bill, profile, billProfile = {}) {
   const plNo = billProfile?.plNo || "-";
   const slNo = billProfile?.slNo || "-";
   const retailDate = bill.createdAtText || new Date().toLocaleString(locale);
-  const customerName = bill.customerName || "Walk-in";
+  const customerName = bill.customerName || labels.walkIn;
   const disclaimer = String(billProfile?.disclaimer || "").trim();
   const formatSpec = (unitSize, unitType) => {
     const size = Number(unitSize || 1);
@@ -357,34 +402,34 @@ function printThermalBill(bill, profile, billProfile = {}) {
           <div class="retail-meta-wrap">
             <div class="retail-meta-left">
               <p>${escapeHtml(orderLabel)}</p>
-              <p>Bill No: #${escapeHtml(bill.billNo)}</p>
-              <p>Date: ${escapeHtml(retailDate)}</p>
-              <p>Customer: ${escapeHtml(customerName)}</p>
+              <p>${escapeHtml(labels.billNo)}: #${escapeHtml(bill.billNo)}</p>
+              <p>${escapeHtml(labels.date)}: ${escapeHtml(retailDate)}</p>
+              <p>${escapeHtml(labels.customer)}: ${escapeHtml(customerName)}</p>
             </div>
             <div class="retail-meta-right">
-              <p>PL No: ${escapeHtml(plNo)}</p>
-              <p>SL No: ${escapeHtml(slNo)}</p>
-              <p>GSTIN: ${escapeHtml(gstin)}</p>
+              <p>${escapeHtml(labels.plNo)}: ${escapeHtml(plNo)}</p>
+              <p>${escapeHtml(labels.slNo)}: ${escapeHtml(slNo)}</p>
+              <p>${escapeHtml(labels.gstin)}: ${escapeHtml(gstin)}</p>
             </div>
           </div>
           <table>
             <thead>
               <tr>
-                <th>Item</th>
-                <th class="center">Spec</th>
-                <th class="center">Qty</th>
-                <th class="right">Amount</th>
+                <th>${escapeHtml(labels.item)}</th>
+                <th class="center">${escapeHtml(labels.spec)}</th>
+                <th class="center">${escapeHtml(labels.qty)}</th>
+                <th class="right">${escapeHtml(labels.amount)}</th>
               </tr>
             </thead>
             <tbody>${linesHtml}</tbody>
           </table>
           <div class="totals">
-            <div class="tot-row"><span>Total</span><span>${escapeHtml(formatCurrency(taxableTotal, currency, locale))}</span></div>
-            <div class="tot-row"><span>SGST 2.5%</span><span>${escapeHtml(formatCurrency(sgst, currency, locale))}</span></div>
-            <div class="tot-row"><span>CGST 2.5%</span><span>${escapeHtml(formatCurrency(cgst, currency, locale))}</span></div>
-            <div class="tot-row"><strong>Grand Total</strong><strong>${escapeHtml(formatCurrency(grandTotal, currency, locale))}</strong></div>
+            <div class="tot-row"><span>${escapeHtml(labels.total)}</span><span>${escapeHtml(formatCurrency(taxableTotal, currency, locale))}</span></div>
+            <div class="tot-row"><span>${escapeHtml(labels.sgst)}</span><span>${escapeHtml(formatCurrency(sgst, currency, locale))}</span></div>
+            <div class="tot-row"><span>${escapeHtml(labels.cgst)}</span><span>${escapeHtml(formatCurrency(cgst, currency, locale))}</span></div>
+            <div class="tot-row"><strong>${escapeHtml(labels.grandTotal)}</strong><strong>${escapeHtml(formatCurrency(grandTotal, currency, locale))}</strong></div>
           </div>
-          ${disclaimer ? `<div class="retail-disclaimer"><h4>DISCLAIMER</h4><p>${escapeHtml(disclaimer)}</p></div>` : ""}
+          ${disclaimer ? `<div class="retail-disclaimer"><h4>${escapeHtml(labels.disclaimer)}</h4><p>${escapeHtml(disclaimer)}</p></div>` : ""}
         </div>
         <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();};};</script>
       </body>
@@ -405,3 +450,5 @@ export function printRetailBillByTemplate(bill, profile, billProfile) {
 
   return printThermalBill(bill, profile, billProfile);
 }
+
+

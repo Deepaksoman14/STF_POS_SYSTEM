@@ -45,7 +45,7 @@ function mapProducts(productsData) {
 
 function POSPage() {
   const profile = getBusinessProfile();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { user } = useAuthStore();
   const { cart, addToCart, updateQty, clearCart } = usePosStore();
   const [products, setProducts] = useState([]);
@@ -108,7 +108,7 @@ function POSPage() {
         );
       } catch (err) {
         if (mounted) {
-          setError(extractApiError(err, "Failed to load POS data"));
+          setError(extractApiError(err, t("pos.failedLoad")));
         }
       } finally {
         if (mounted) {
@@ -122,7 +122,7 @@ function POSPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [language]);
 
   const cartQtyByVariant = useMemo(() => {
     return cart.reduce((acc, item) => {
@@ -272,7 +272,7 @@ function POSPage() {
       }
 
       if (orderType === "wholesale" && !payload.customerId && !payload.customer?.name) {
-        throw new Error("Customer is required for wholesale orders");
+        throw new Error(t("pos.customerMandatory"));
       }
 
       const sale = await createSale(payload);
@@ -280,8 +280,8 @@ function POSPage() {
       setSuccessText(t("pos.saleCreated", { billNo }));
 
       const customerDisplayName = selectedCustomerId
-        ? (customers.find((customer) => customer.id === selectedCustomerId)?.name || customerName.trim() || "Walk-in")
-        : (customerName.trim() || "Walk-in");
+        ? (customers.find((customer) => customer.id === selectedCustomerId)?.name || customerName.trim() || t("common.walkIn"))
+        : (customerName.trim() || t("common.walkIn"));
 
       const printableBill = {
         billNo,
@@ -290,7 +290,7 @@ function POSPage() {
         customerName: customerDisplayName,
         orderType,
         paymentMode,
-        sourceLocationLabel: getLocationLabel(sourceLocationCode),
+        sourceLocationLabel: getLocationLabel(sourceLocationCode, t),
         createdBy: user.name,
         wholesaleTinNo: sale.wholesale_tin_no || (orderType === "wholesale" ? wholesaleTinNo.trim() : ""),
         wholesaleFlPlSlNo: sale.wholesale_fl_pl_sl_no || (orderType === "wholesale" ? wholesaleFlPlSlNo.trim() : ""),
@@ -319,7 +319,7 @@ function POSPage() {
       setPendingPrintBill(printableBill);
       setShowPrintPrompt(true);
     } catch (err) {
-      setError(extractApiError(err, "Checkout failed"));
+      setError(extractApiError(err, t("pos.checkoutFailed")));
     } finally {
       setSubmitting(false);
     }
@@ -351,7 +351,7 @@ function POSPage() {
             setOrderType("retail");
           }}
         >
-          Retail Order
+          {t("pos.modeRetail")}
         </button>
         <button
           type="button"
@@ -361,14 +361,14 @@ function POSPage() {
             setOrderType("wholesale");
           }}
         >
-          Wholesale Order
+          {t("pos.modeWholesale")}
         </button>
         <button
           type="button"
           className={posMode === "purchase" ? "" : "ghost"}
           onClick={() => setPosMode("purchase")}
         >
-          Purchase Order
+          {t("pos.modePurchase")}
         </button>
       </div>
     );
@@ -384,11 +384,11 @@ function POSPage() {
       {showPrintPrompt && (
         <div className="modal-backdrop">
           <div className="card modal-card">
-            <h3>Print Bill</h3>
-            <p className="muted">Checkout completed for {orderType === "wholesale" ? "wholesale" : "retail"} order. Do you want to print this bill now?</p>
+            <h3>{t("pos.printTitle")}</h3>
+            <p className="muted">{t("pos.printPrompt", { type: orderType === "wholesale" ? t("pos.modeWholesale") : t("pos.modeRetail") })}</p>
             <div className="actions">
-              <button type="button" className="ghost" onClick={handlePrintSkip}>Skip</button>
-              <button type="button" onClick={handlePrintNow}>Print Bill</button>
+              <button type="button" className="ghost" onClick={handlePrintSkip}>{t("common.skip")}</button>
+              <button type="button" onClick={handlePrintNow}>{t("pos.printNow")}</button>
             </div>
           </div>
         </div>
@@ -398,11 +398,11 @@ function POSPage() {
         <div className="pos-header-row">
           <div>
             <h2>{t("pos.title")}</h2>
-            <p className="muted">Search by product or SKU and bill faster.</p>
+            <p className="muted">{t("pos.subtitle")}</p>
             {renderModeToggle()}
           </div>
           <div className="pos-quick-stats card compact">
-            <p className="small muted">Items in cart</p>
+            <p className="small muted">{t("pos.itemsInCart")}</p>
             <strong>{cart.length}</strong>
           </div>
         </div>
@@ -413,7 +413,7 @@ function POSPage() {
         <div className="card compact pos-search-wrap">
           <input
             type="text"
-            placeholder="Search products by name or SKU"
+            placeholder={t("pos.searchProducts")}
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
@@ -450,7 +450,7 @@ function POSPage() {
                           disabled={isOut}
                         >
                           {unitLabel}
-                          {isOut && <span className="variant-out">Out</span>}
+                          {isOut && <span className="variant-out">{t("common.out")}</span>}
                         </button>
                       );
                     })}
@@ -459,7 +459,7 @@ function POSPage() {
                   {selectedVariant && (
                     <div className="variant-summary">
                       <p className="muted small">
-                        SKU {selectedVariant.sku} - Stock ({getLocationLabel(sourceLocationCode)}) {getLocationQty(selectedVariant.locationStocks, sourceLocationCode)}
+                        {t("products.skuLabel")} {selectedVariant.sku} - {t("pos.stockAtLocation", { location: getLocationLabel(sourceLocationCode), qty: getLocationQty(selectedVariant.locationStocks, sourceLocationCode) })}
                       </p>
                       <div className="variant-actions">
                         <span>{formatCurrency(selectedVariant.salePrice, profile.currency, profile.locale)}</span>
@@ -467,7 +467,7 @@ function POSPage() {
                           onClick={() => handleAdd(selectedVariant)}
                           disabled={getCartQty(selectedVariant.id) >= getLocationQty(selectedVariant.locationStocks, sourceLocationCode)}
                         >
-                          {getCartQty(selectedVariant.id) < getLocationQty(selectedVariant.locationStocks, sourceLocationCode) ? t("pos.add") : "Stock Limit"}
+                          {getCartQty(selectedVariant.id) < getLocationQty(selectedVariant.locationStocks, sourceLocationCode) ? t("pos.add") : t("pos.stockLimit")}
                         </button>
                       </div>
                     </div>
@@ -487,7 +487,7 @@ function POSPage() {
           <div key={item.id} className="line-item pos-line-item">
             <div>
               <p>{item.name}</p>
-              <p className="muted small">{formatUnitLabel(item.unitSize, item.unitType)} - {formatCurrency(item.salePrice, profile.currency, profile.locale)} each</p>
+              <p className="muted small">{formatUnitLabel(item.unitSize, item.unitType)} - {formatCurrency(item.salePrice, profile.currency, profile.locale)} {t("common.each")}</p>
             </div>
 
             <div className="qty-stepper">
@@ -501,11 +501,11 @@ function POSPage() {
         ))}
 
         <div className="pos-checkout-config">
-          <label>Customer Name</label>
+          <label>{t("customers.customerName")}</label>
           <div className="combo-box">
             <input
               type="text"
-              placeholder={orderType === "wholesale" ? "Required for wholesale order" : "Search name, mobile, or email"}
+              placeholder={orderType === "wholesale" ? t("pos.customerRequiredWholesale") : t("pos.searchCustomer")}
               value={customerName}
               onChange={(event) => handleCustomerInputChange(event.target.value)}
               onFocus={() => setCustomerMenuOpen(true)}
@@ -531,44 +531,44 @@ function POSPage() {
             )}
           </div>
           {orderType === "wholesale" && !customerName.trim() && (
-            <p className="error-text small">Customer is mandatory for wholesale billing.</p>
+            <p className="error-text small">{t("pos.customerMandatory")}</p>
           )}
 
-          <label>Payment Mode</label>
+          <label>{t("purchase.paymentMode")}</label>
           <select value={paymentMode} onChange={(event) => setPaymentMode(event.target.value)}>
-            <option value="cash">Cash</option>
-            <option value="upi">UPI</option>
-            <option value="card">Card</option>
-            <option value="credit">Credit</option>
+            <option value="cash">{t("payment.cash")}</option>
+            <option value="upi">{t("payment.upi")}</option>
+            <option value="card">{t("payment.card")}</option>
+            <option value="credit">{t("payment.credit")}</option>
           </select>
 
           {orderType === "wholesale" && (
             <>
-              <label>TIN No.</label>
+          <label>{t("bill.tinNo")}</label>
               <input
                 type="text"
-                placeholder="Enter TIN No."
+                placeholder={t("bill.enterTinNo")}
                 value={wholesaleTinNo}
                 onChange={(event) => setWholesaleTinNo(event.target.value)}
               />
-              <label>F.L / P.L / S.L No.</label>
+              <label>{t("bill.flPlSlNo")}</label>
               <input
                 type="text"
-                placeholder="Enter F.L / P.L / S.L No."
+                placeholder={t("bill.enterFlPlSlNo")}
                 value={wholesaleFlPlSlNo}
                 onChange={(event) => setWholesaleFlPlSlNo(event.target.value)}
               />
             </>
           )}
 
-          <label>Sell From</label>
+          <label>{t("pos.sellFrom")}</label>
           <select value={sourceLocationCode} onChange={(event) => setSourceLocationCode(event.target.value)}>
             {INVENTORY_LOCATIONS.map((location) => (
-              <option key={location.code} value={location.code}>{location.label}</option>
+              <option key={location.code} value={location.code}>{t(location.labelKey)}</option>
             ))}
           </select>
 
-          <label>Discount</label>
+          <label>{t("dashboard.discount")}</label>
           <input
             type="number"
             min="0"
@@ -577,10 +577,10 @@ function POSPage() {
             onChange={(event) => setDiscount(Number(event.target.value) || 0)}
           />
 
-          <label>Notes</label>
+          <label>{t("purchase.notes")}</label>
           <input
             type="text"
-            placeholder="Optional bill notes"
+            placeholder={t("pos.notesPlaceholder")}
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
           />
@@ -588,11 +588,11 @@ function POSPage() {
 
         <hr />
         <div className="line-item pos-total-line">
-          <span>Subtotal</span>
+          <span>{t("pos.subtotal")}</span>
           <strong>{formatCurrency(subtotal, profile.currency, profile.locale)}</strong>
         </div>
         <div className="line-item pos-total-line">
-          <span>Discount</span>
+          <span>{t("dashboard.discount")}</span>
           <strong>{formatCurrency(safeDiscount, profile.currency, profile.locale)}</strong>
         </div>
         <div className="line-item pos-total-line grand-total">

@@ -31,25 +31,25 @@ const paramsSchema = z.object({
 });
 
 export const listProductsController = asyncHandler(async (req, res) => {
-  const data = await listProducts(req.user.businessId);
+  const data = await listProducts(req.user.businessId, req.locale);
   res.json({ success: true, data });
 });
 
 export const listArchivedProductsController = asyncHandler(async (req, res) => {
-  const data = await listArchivedProducts(req.user.businessId);
+  const data = await listArchivedProducts(req.user.businessId, req.locale);
   res.json({ success: true, data });
 });
 
 export const createProductController = asyncHandler(async (req, res) => {
   const payload = productSchema.parse(req.body);
-  const data = await createProduct(req.user.businessId, payload);
+  const data = await createProduct(req.user.businessId, payload, req.locale);
   res.status(201).json({ success: true, data });
 });
 
 export const updateProductController = asyncHandler(async (req, res) => {
   const { productId } = paramsSchema.parse(req.params);
   const payload = productSchema.parse(req.body);
-  const data = await updateProduct(req.user.businessId, productId, payload);
+  const data = await updateProduct(req.user.businessId, productId, payload, req.locale);
   res.json({ success: true, data });
 });
 

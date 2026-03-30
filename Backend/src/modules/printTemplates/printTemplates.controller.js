@@ -17,12 +17,12 @@ export const listPrintTemplatesController = asyncHandler(async (_req, res) => {
 });
 
 export const getCurrentPrintTemplateController = asyncHandler(async (req, res) => {
-  const data = await getCurrentPrintTemplate(req.user.businessId);
+  const data = await getCurrentPrintTemplate(req.user.businessId, req.locale);
   res.json({ success: true, data });
 });
 
 export const setCurrentPrintTemplateController = asyncHandler(async (req, res) => {
   const payload = updateCurrentSchema.parse(req.body);
-  const data = await setCurrentPrintTemplate(req.user.businessId, payload.templateKey, payload.billProfile);
+  const data = await setCurrentPrintTemplate(req.user.businessId, req.locale, payload.templateKey, payload.billProfile);
   res.json({ success: true, data });
 });

@@ -4,6 +4,7 @@ import { createPurchaseOrder } from "../../../api/purchaseOrderApi";
 import { fetchProducts } from "../../../api/productApi";
 import { INVENTORY_LOCATIONS, getLocationLabel, getLocationQty } from "../../../domain/inventoryLocations";
 import { useAuthStore } from "../../../store/authStore";
+import { useI18n } from "../../../i18n/useI18n";
 import { formatCurrency, getBusinessProfile } from "../../../utils/formatters";
 
 function formatUnitLabel(unitSize, unitType) {
@@ -39,6 +40,7 @@ function mapProducts(data) {
 
 function PurchaseOrdersPage({ embedded = false, modeToggle = null }) {
   const profile = getBusinessProfile();
+  const { language, t } = useI18n();
   const { user } = useAuthStore();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +75,7 @@ function PurchaseOrdersPage({ embedded = false, modeToggle = null }) {
           return next;
         });
       } catch (err) {
-        if (mounted) setError(extractApiError(err, "Failed to load products"));
+        if (mounted) setError(extractApiError(err, t("purchase.failedLoadProducts")));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -83,7 +85,7 @@ function PurchaseOrdersPage({ embedded = false, modeToggle = null }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [language]);
 
   const filteredProducts = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -162,14 +164,14 @@ function PurchaseOrdersPage({ embedded = false, modeToggle = null }) {
 
       const purchase = await createPurchaseOrder(payload);
       const billNo = purchase.purchase_no || purchase.id;
-      setSuccessText(`Purchase order created. Bill #${billNo}`);
+      setSuccessText(t("purchase.created", { billNo }));
       clearCart();
       setSupplierName("");
       setNotes("");
 
       await refreshProducts();
     } catch (err) {
-      setError(extractApiError(err, "Failed to create purchase order"));
+      setError(extractApiError(err, t("purchase.failedCreate")));
     } finally {
       setSubmitting(false);
     }
@@ -180,14 +182,14 @@ function PurchaseOrdersPage({ embedded = false, modeToggle = null }) {
       <section>
         <div className="pos-header-row">
           <div>
-            <h2>{embedded ? "Billing Counter" : "Purchase Orders"}</h2>
+            <h2>{embedded ? t("pos.title") : t("purchase.title")}</h2>
             <p className="muted">
-              {embedded ? "Search by product or SKU and bill faster." : "Record wholesale buying and increase stock in one flow."}
+              {embedded ? t("purchase.embeddedSubtitle") : t("purchase.subtitle")}
             </p>
             {embedded && modeToggle}
           </div>
           <div className="pos-quick-stats card compact">
-            <p className="small muted">Items in order</p>
+            <p className="small muted">{t("purchase.itemsInOrder")}</p>
             <strong>{cart.length}</strong>
           </div>
         </div>
@@ -198,14 +200,14 @@ function PurchaseOrdersPage({ embedded = false, modeToggle = null }) {
         <div className="card compact pos-search-wrap">
           <input
             type="text"
-            placeholder="Search products by name or SKU"
+            placeholder={t("purchase.searchPlaceholder")}
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
         </div>
 
         {loading ? (
-          <p className="muted">Loading products...</p>
+          <p className="muted">{t("purchase.loadingProducts")}</p>
         ) : (
           <div className="product-grid pos-product-grid">
             {filteredProducts.map((product) => {
@@ -240,11 +242,11 @@ function PurchaseOrdersPage({ embedded = false, modeToggle = null }) {
                   {selectedVariant && (
                     <div className="variant-summary">
                       <p className="muted small">
-                        SKU {selectedVariant.sku} - Stock ({getLocationLabel(receiveLocationCode)}) {getLocationQty(selectedVariant.locationStocks, receiveLocationCode)}
+                        {t("products.skuLabel")} {selectedVariant.sku} - {t("pos.stockAtLocation", { location: getLocationLabel(receiveLocationCode, t), qty: getLocationQty(selectedVariant.locationStocks, receiveLocationCode) })}
                       </p>
                       <div className="variant-actions">
                         <span>{formatCurrency(selectedVariant.costPrice, profile.currency, profile.locale)}</span>
-                        <button onClick={() => addToCart(selectedVariant)}>Add</button>
+                        <button onClick={() => addToCart(selectedVariant)}>{t("pos.add")}</button>
                       </div>
                     </div>
                   )}
@@ -256,14 +258,14 @@ function PurchaseOrdersPage({ embedded = false, modeToggle = null }) {
       </section>
 
       <section className="card pos-bill-card">
-        <h3>Current Purchase Order</h3>
+        <h3>{t("purchase.currentOrder")}</h3>
 
-        {cart.length === 0 && <p className="muted">No items added.</p>}
+        {cart.length === 0 && <p className="muted">{t("pos.noItems")}</p>}
         {cart.map((item) => (
           <div key={item.id} className="line-item pos-line-item">
             <div>
               <p>{item.name}</p>
-              <p className="muted small">{formatUnitLabel(item.unitSize, item.unitType)} - {formatCurrency(item.costPrice, profile.currency, profile.locale)} each</p>
+              <p className="muted small">{formatUnitLabel(item.unitSize, item.unitType)} - {formatCurrency(item.costPrice, profile.currency, profile.locale)} {t("common.each")}</p>
             </div>
 
             <div className="qty-stepper">
@@ -277,33 +279,33 @@ function PurchaseOrdersPage({ embedded = false, modeToggle = null }) {
         ))}
 
         <div className="pos-checkout-config">
-          <label>Supplier Name</label>
+          <label>{t("purchase.supplierName")}</label>
           <input
             type="text"
-            placeholder="Optional supplier name"
+            placeholder={t("purchase.supplierPlaceholder")}
             value={supplierName}
             onChange={(event) => setSupplierName(event.target.value)}
           />
 
-          <label>Receive To</label>
+          <label>{t("purchase.receiveTo")}</label>
           <select value={receiveLocationCode} onChange={(event) => setReceiveLocationCode(event.target.value)}>
             {INVENTORY_LOCATIONS.map((location) => (
-              <option key={location.code} value={location.code}>{location.label}</option>
+              <option key={location.code} value={location.code}>{t(location.labelKey)}</option>
             ))}
           </select>
 
-          <label>Payment Mode</label>
+          <label>{t("purchase.paymentMode")}</label>
           <select value={paymentMode} onChange={(event) => setPaymentMode(event.target.value)}>
-            <option value="cash">Cash</option>
-            <option value="upi">UPI</option>
-            <option value="card">Card</option>
-            <option value="credit">Credit</option>
+            <option value="cash">{t("payment.cash")}</option>
+            <option value="upi">{t("payment.upi")}</option>
+            <option value="card">{t("payment.card")}</option>
+            <option value="credit">{t("payment.credit")}</option>
           </select>
 
-          <label>Notes</label>
+          <label>{t("purchase.notes")}</label>
           <input
             type="text"
-            placeholder="Optional purchase notes"
+            placeholder={t("purchase.notesPlaceholder")}
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
           />
@@ -311,14 +313,14 @@ function PurchaseOrdersPage({ embedded = false, modeToggle = null }) {
 
         <hr />
         <div className="line-item pos-total-line grand-total">
-          <strong>Total</strong>
+          <strong>{t("pos.total")}</strong>
           <strong>{formatCurrency(subtotal, profile.currency, profile.locale)}</strong>
         </div>
 
         <div className="actions">
-          <button className="ghost" onClick={clearCart}>Clear</button>
+          <button className="ghost" onClick={clearCart}>{t("pos.clear")}</button>
           <button disabled={cart.length === 0 || submitting} onClick={handleCreatePurchaseOrder}>
-            {submitting ? "Processing..." : "Create Purchase Order"}
+            {submitting ? t("pos.processing") : t("purchase.create")}
           </button>
         </div>
       </section>

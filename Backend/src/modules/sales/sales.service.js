@@ -1,6 +1,7 @@
 import { pool } from "../../db/index.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { getLocationMap, INVENTORY_LOCATION_CODES } from "../inventory/inventoryLocation.service.js";
+import { upsertEntityTranslations } from "../i18n/i18n.service.js";
 
 async function ensureSaleSchema(client) {
   await client.query(
@@ -13,7 +14,7 @@ async function ensureSaleSchema(client) {
   );
 }
 
-export async function createSale(businessId, payload) {
+export async function createSale(businessId, payload, locale) {
   const client = await pool.connect();
 
   try {
@@ -100,6 +101,14 @@ export async function createSale(businessId, payload) {
         );
 
         resolvedCustomerId = customerRes.rows[0].id;
+        await upsertEntityTranslations(
+          client,
+          businessId,
+          "customer",
+          resolvedCustomerId,
+          locale,
+          { name, address }
+        );
       }
     }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { extractApiError } from "../../../api/client";
 import { useI18n } from "../../../i18n/useI18n";
@@ -42,11 +42,11 @@ function RegisterPage() {
 
     try {
       const data = await register(form);
-      setSuccess(data.message || "Signup request submitted for approval.");
+      setSuccess(data.message || t("auth.signupSubmitted"));
       setForm(initialForm);
       setTimeout(() => navigate("/login"), 1200);
     } catch (err) {
-      setError(extractApiError(err, "Unable to register"));
+      setError(extractApiError(err, t("auth.registerFailed")));
     } finally {
       setLoading(false);
     }
@@ -118,3 +118,5 @@ function RegisterPage() {
 }
 
 export default RegisterPage;
+
+

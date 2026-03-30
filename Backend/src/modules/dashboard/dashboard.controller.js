@@ -14,6 +14,6 @@ const summaryQuerySchema = z.object({
 
 export const summaryController = asyncHandler(async (req, res) => {
   const query = summaryQuerySchema.parse(req.query);
-  const data = await getSummary(req.user.businessId, query);
+  const data = await getSummary(req.user.businessId, { ...query, locale: req.locale });
   res.json({ success: true, data });
 });

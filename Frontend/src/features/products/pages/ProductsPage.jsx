@@ -46,7 +46,7 @@ function formatUnitLabel(unitSize, unitType) {
 
 function ProductsPage() {
   const { user } = useAuthStore();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [rows, setRows] = useState([]);
   const [archivedRows, setArchivedRows] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
@@ -110,7 +110,7 @@ function ProductsPage() {
         setRows(active.map(mapProduct));
         setArchivedRows(archived.map(mapProduct));
       } catch (err) {
-        if (mounted) setError(extractApiError(err, "Failed to load products"));
+        if (mounted) setError(extractApiError(err, t("products.failedLoad")));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -121,7 +121,7 @@ function ProductsPage() {
     return () => {
       mounted = false;
     };
-  }, [canManage]);
+  }, [canManage, language]);
 
   const filteredSortedRows = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -254,7 +254,7 @@ function ProductsPage() {
             ...incomingVariants
           ]
         });
-        setSuccessText("Variant added to existing product successfully.");
+        setSuccessText(t("products.variantAdded"));
       } else {
         await createProduct({
           name: form.name,
@@ -269,7 +269,7 @@ function ProductsPage() {
       setSelectedExistingProductId("");
       setNameMenuOpen(false);
     } catch (err) {
-      setError(extractApiError(err, "Failed to create product"));
+      setError(extractApiError(err, t("products.failedCreate")));
     } finally {
       setSubmitting(false);
     }
@@ -322,16 +322,16 @@ function ProductsPage() {
       await Promise.all([loadProducts(), loadArchivedProducts()]);
       setEditingId("");
       setEditForm(initialForm);
-      setSuccessText("Product updated successfully.");
+      setSuccessText(t("products.updated"));
     } catch (err) {
-      setError(extractApiError(err, "Failed to update product"));
+      setError(extractApiError(err, t("products.failedUpdate")));
     } finally {
       setSubmitting(false);
     }
   }
 
   async function handleDeleteProduct(id) {
-    if (!window.confirm("Delete this product?")) return;
+    if (!window.confirm(t("products.confirmDelete"))) return;
 
     setError("");
     setSuccessText("");
@@ -339,9 +339,9 @@ function ProductsPage() {
     try {
       await deleteProduct(id);
       await Promise.all([loadProducts(), loadArchivedProducts()]);
-      setSuccessText("Product archived successfully.");
+      setSuccessText(t("products.archived"));
     } catch (err) {
-      setError(extractApiError(err, "Failed to delete product"));
+      setError(extractApiError(err, t("products.failedDelete")));
     }
   }
 
@@ -352,9 +352,9 @@ function ProductsPage() {
     try {
       await restoreProduct(id);
       await Promise.all([loadProducts(), loadArchivedProducts()]);
-      setSuccessText("Product restored successfully.");
+      setSuccessText(t("products.restored"));
     } catch (err) {
-      setError(extractApiError(err, "Failed to restore product"));
+      setError(extractApiError(err, t("products.failedRestore")));
     }
   }
 
@@ -362,7 +362,7 @@ function ProductsPage() {
     return formState.variants.map((variant, index) => (
       <div key={variant.id || index} className="variant-row">
         <input
-          placeholder="SKU"
+          placeholder={t("products.skuLabel")}
           value={variant.sku}
           onChange={(e) => updateVariant(formState, setFormState, index, "sku", e.target.value)}
           required
@@ -377,41 +377,41 @@ function ProductsPage() {
         </select>
         <input
           type="number"
-          placeholder="Unit Size"
+          placeholder={t("products.unitSize")}
           value={variant.unitSize}
           onChange={(e) => updateVariant(formState, setFormState, index, "unitSize", e.target.value)}
           required
         />
         <input
           type="number"
-          placeholder="Cost Price"
+          placeholder={t("products.costPrice")}
           value={variant.costPrice}
           onChange={(e) => updateVariant(formState, setFormState, index, "costPrice", e.target.value)}
           required
         />
         <input
           type="number"
-          placeholder="Sale Price"
+          placeholder={t("products.salePrice")}
           value={variant.salePrice}
           onChange={(e) => updateVariant(formState, setFormState, index, "salePrice", e.target.value)}
           required
         />
         <input
           type="number"
-          placeholder="Stock Qty"
+          placeholder={t("products.stockQty")}
           value={variant.stockQty}
           onChange={(e) => updateVariant(formState, setFormState, index, "stockQty", e.target.value)}
           required
         />
         <input
           type="number"
-          placeholder="Reorder Level"
+          placeholder={t("products.reorderLevel")}
           value={variant.reorderLevel}
           onChange={(e) => updateVariant(formState, setFormState, index, "reorderLevel", e.target.value)}
           required
         />
         {allowRemove && (
-          <button type="button" className="ghost" onClick={() => removeVariant(formState, setFormState, index)}>Remove</button>
+          <button type="button" className="ghost" onClick={() => removeVariant(formState, setFormState, index)}>{t("common.remove")}</button>
         )}
       </div>
     ));
@@ -448,7 +448,7 @@ function ProductsPage() {
                       }}
                     >
                       <span className="combo-title">{row.name}</span>
-                      <span className="combo-sub">{row.category} · {row.variants.length} variants</span>
+                      <span className="combo-sub">{row.category} · {t("products.variantCount", { count: row.variants.length })}</span>
                     </button>
                   ))}
                 </div>
@@ -462,12 +462,12 @@ function ProductsPage() {
               disabled={Boolean(selectedExistingProduct)}
             />
           </div>
-          {selectedExistingProduct && <p className="muted small">Existing product selected. New variants will be added to this product.</p>}
+          {selectedExistingProduct && <p className="muted small">{t("products.existingSelectedHint")}</p>}
 
           <div className="variant-block">
-            <h4>Variants</h4>
+            <h4>{t("products.variants")}</h4>
             {renderVariantRows(form, setForm, form.variants.length > 1)}
-            <button type="button" className="ghost" onClick={() => addVariant(form, setForm)}>Add Variant</button>
+            <button type="button" className="ghost" onClick={() => addVariant(form, setForm)}>{t("products.addVariant")}</button>
           </div>
 
           <div className="actions">
@@ -478,21 +478,21 @@ function ProductsPage() {
 
       {canManage && editingId && (
         <form className="card section-gap" onSubmit={handleUpdateProduct}>
-          <h3>Edit Product</h3>
+          <h3>{t("products.editProduct")}</h3>
           <div className="form-grid">
             <input placeholder={t("products.productName")} value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} required />
             <input placeholder={t("products.category")} value={editForm.category} onChange={(e) => setEditForm((p) => ({ ...p, category: e.target.value }))} required />
           </div>
 
           <div className="variant-block">
-            <h4>Variants</h4>
+            <h4>{t("products.variants")}</h4>
             {renderVariantRows(editForm, setEditForm, editForm.variants.length > 1)}
-            <button type="button" className="ghost" onClick={() => addVariant(editForm, setEditForm)}>Add Variant</button>
+            <button type="button" className="ghost" onClick={() => addVariant(editForm, setEditForm)}>{t("products.addVariant")}</button>
           </div>
 
           <div className="actions">
-            <button type="button" className="ghost" onClick={() => setEditingId("")}>Cancel</button>
-            <button type="submit" disabled={submitting}>{submitting ? "Saving..." : "Update Product"}</button>
+            <button type="button" className="ghost" onClick={() => setEditingId("")}>{t("common.cancel")}</button>
+            <button type="submit" disabled={submitting}>{submitting ? t("products.saving") : t("products.updateProduct")}</button>
           </div>
         </form>
       )}
@@ -508,14 +508,14 @@ function ProductsPage() {
             <div className="table-toolbar">
               <input
                 className="table-search"
-                placeholder="Search by name, category, or SKU"
+              placeholder={t("products.searchPlaceholder")}
                 value={searchTerm}
                 onChange={(event) => {
                   setSearchTerm(event.target.value);
                   setPage(1);
                 }}
               />
-              <p className="muted small">Showing {pagedRows.length} of {filteredSortedRows.length} active records</p>
+              <p className="muted small">{t("products.showingRecords", { count: pagedRows.length, total: filteredSortedRows.length })}</p>
             </div>
 
             <div className="table-scroll">
@@ -524,8 +524,8 @@ function ProductsPage() {
                   <tr>
                     <th><button type="button" className="table-sort-btn" onClick={() => handleSort("name")}>{t("products.productName")}</button></th>
                     <th><button type="button" className="table-sort-btn" onClick={() => handleSort("category")}>{t("products.category")}</button></th>
-                    <th>Variants</th>
-                    <th>Actions</th>
+                    <th>{t("products.variants")}</th>
+                    <th>{t("common.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -539,7 +539,7 @@ function ProductsPage() {
                         <div className="variant-tags">
                           {row.variants.map((variant) => (
                             <span key={variant.id} className="variant-chip">
-                              {variant.sku} · {formatUnitLabel(variant.unitSize, variant.unitType)} · {variant.stockQty} in stock
+                              {variant.sku} · {formatUnitLabel(variant.unitSize, variant.unitType)} · {t("products.stockIn", { qty: variant.stockQty })}
                             </span>
                           ))}
                         </div>
@@ -547,8 +547,8 @@ function ProductsPage() {
                       <td>
                         {canManage ? (
                           <div className="row-actions">
-                            <button type="button" className="ghost" onClick={() => beginEdit(row)}>Edit</button>
-                            <button type="button" className="ghost danger-ghost" onClick={() => handleDeleteProduct(row.id)}>Delete</button>
+                            <button type="button" className="ghost" onClick={() => beginEdit(row)}>{t("common.edit")}</button>
+                            <button type="button" className="ghost danger-ghost" onClick={() => handleDeleteProduct(row.id)}>{t("common.delete")}</button>
                           </div>
                         ) : "-"}
                       </td>
@@ -559,18 +559,18 @@ function ProductsPage() {
             </div>
 
             <div className="pagination-row">
-              <button type="button" className="ghost" disabled={currentPage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Previous</button>
-              <p className="small muted">Page {currentPage} of {totalPages}</p>
-              <button type="button" className="ghost" disabled={currentPage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</button>
+            <button type="button" className="ghost" disabled={currentPage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{t("common.previous")}</button>
+            <p className="small muted">{t("common.pageOf", { page: currentPage, total: totalPages })}</p>
+            <button type="button" className="ghost" disabled={currentPage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{t("common.next")}</button>
             </div>
           </div>
 
           {canManage && (
             <div className="card section-gap table-enhanced-wrap">
               <div className="table-toolbar">
-                <h3>Archived Products ({archivedRows.length})</h3>
+                <h3>{t("products.archivedTitle", { count: archivedRows.length })}</h3>
                 <button type="button" className="ghost" onClick={() => setShowArchived((prev) => !prev)}>
-                  {showArchived ? "Hide Archived" : "Show Archived"}
+                  {showArchived ? t("products.hideArchived") : t("products.showArchived")}
                 </button>
               </div>
 
@@ -581,14 +581,14 @@ function ProductsPage() {
                       <tr>
                         <th>{t("products.productName")}</th>
                         <th>{t("products.category")}</th>
-                        <th>Variants</th>
-                        <th>Action</th>
+                        <th>{t("products.variants")}</th>
+                        <th>{t("common.action")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {archivedRows.length === 0 ? (
                         <tr>
-                          <td colSpan="4" className="muted">No archived products.</td>
+                          <td colSpan="4" className="muted">{t("products.noArchived")}</td>
                         </tr>
                       ) : (
                         archivedRows.map((row) => (
@@ -605,7 +605,7 @@ function ProductsPage() {
                               </div>
                             </td>
                             <td>
-                              <button type="button" className="ghost" onClick={() => handleRestoreProduct(row.id)}>Restore</button>
+                              <button type="button" className="ghost" onClick={() => handleRestoreProduct(row.id)}>{t("products.restore")}</button>
                             </td>
                           </tr>
                         ))

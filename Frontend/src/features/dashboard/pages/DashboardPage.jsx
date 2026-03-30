@@ -36,21 +36,9 @@ function formatMetric(value, formatter) {
   return formatter ? formatter(value) : String(value);
 }
 
-function formatRangeLabel(fromDate, toDate) {
-  const quick = getQuickRange(fromDate, toDate);
-  if (quick === "today") return "Today";
-  if (quick === "last7") return "Last 7 Days";
-  if (quick === "thisMonth") return "This Month";
-  if (quick === "all") return "All Time";
-
-  if (fromDate && toDate) return `${fromDate} to ${toDate}`;
-  if (fromDate) return `From ${fromDate}`;
-  return `Up to ${toDate}`;
-}
-
 function DashboardPage() {
   const profile = getBusinessProfile();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const filterRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
@@ -81,7 +69,7 @@ function DashboardPage() {
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [appliedFromDate, appliedToDate]);
+  }, [appliedFromDate, appliedToDate, language]);
 
   useEffect(() => {
     let mounted = true;
@@ -91,7 +79,7 @@ function DashboardPage() {
       setError("");
       try {
         if (appliedFromDate && appliedToDate && appliedFromDate > appliedToDate) {
-          throw new Error("From date cannot be later than to date");
+          throw new Error(t("dashboard.invalidDateRange"));
         }
 
         const data = await fetchDashboardSummary({ fromDate: appliedFromDate, toDate: appliedToDate });
@@ -101,7 +89,7 @@ function DashboardPage() {
         }
       } catch (err) {
         if (mounted) {
-          setError(extractApiError(err, "Failed to load dashboard"));
+          setError(extractApiError(err, t("dashboard.failedLoad")));
         }
       } finally {
         if (mounted) setLoading(false);
@@ -113,19 +101,19 @@ function DashboardPage() {
     return () => {
       mounted = false;
     };
-  }, [appliedFromDate, appliedToDate]);
+  }, [appliedFromDate, appliedToDate, language]);
 
   const billColumns = useMemo(() => ([
-    { key: "billNo", label: "Bill No" },
-    { key: "billType", label: "Bill Type" },
-    { key: "dateTime", label: "Date & Time" },
-    { key: "customer", label: "Customer / Supplier" },
-    { key: "paymentMode", label: "Payment" },
-    { key: "gross", label: "Gross" },
-    { key: "discount", label: "Discount" },
-    { key: "net", label: "Net Total" },
-    { key: "createdBy", label: "Created By" }
-  ]), []);
+    { key: "billNo", label: t("dashboard.billNo") },
+    { key: "billType", label: t("dashboard.billType") },
+    { key: "dateTime", label: t("dashboard.dateTime") },
+    { key: "customer", label: t("dashboard.customerSupplier") },
+    { key: "paymentMode", label: t("dashboard.payment") },
+    { key: "gross", label: t("dashboard.gross") },
+    { key: "discount", label: t("dashboard.discount") },
+    { key: "net", label: t("dashboard.netTotal") },
+    { key: "createdBy", label: t("dashboard.createdBy") }
+  ]), [t]);
 
   const billRows = useMemo(() => {
     if (!summary?.recentBills) return [];
@@ -134,13 +122,13 @@ function DashboardPage() {
       id: `${item.bill_type}-${item.id}`,
       billNo: `#${item.bill_no}`,
       billTypeKey: String(item.bill_type || "retail_order"),
-      billType: String(item.bill_type || "retail_order")
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, (ch) => ch.toUpperCase()),
+      billType: t(`billType.${String(item.bill_type || "retail_order")}`),
       createdAt: item.created_at,
       dateTime: new Date(item.created_at).toLocaleString(profile.locale),
       customer: item.customer_name || "-",
-      paymentMode: String(item.payment_mode || "-").toUpperCase(),
+      paymentMode: t(`payment.${String(item.payment_mode || "").toLowerCase()}`) !== `payment.${String(item.payment_mode || "").toLowerCase()}`
+        ? t(`payment.${String(item.payment_mode || "").toLowerCase()}`)
+        : String(item.payment_mode || "-").toUpperCase(),
       grossValue: Number(item.gross_total),
       discountValue: Number(item.discount),
       netValue: Number(item.net_total),
@@ -149,7 +137,7 @@ function DashboardPage() {
       net: formatCurrency(Number(item.net_total), profile.currency, profile.locale),
       createdBy: item.created_by
     }));
-  }, [summary?.recentBills, profile.currency, profile.locale]);
+  }, [summary?.recentBills, profile.currency, profile.locale, t]);
 
   const filteredSortedBills = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -190,7 +178,21 @@ function DashboardPage() {
   const currentPage = Math.min(page, totalPages);
   const pagedBills = filteredSortedBills.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const quickRange = getQuickRange(draftFromDate, draftToDate);
-  const rangeLabel = formatRangeLabel(appliedFromDate, appliedToDate);
+  const rangeLabel = quickRange === "today"
+    ? t("dashboard.today")
+    : quickRange === "last7"
+      ? t("dashboard.last7Days")
+      : quickRange === "thisMonth"
+          ? t("dashboard.thisMonth")
+        : quickRange === "all"
+          ? t("dashboard.allTime")
+          : (
+              appliedFromDate && appliedToDate
+                ? t("dashboard.fromTo", { from: appliedFromDate, to: appliedToDate })
+                : appliedFromDate
+                  ? t("dashboard.fromDate", { date: appliedFromDate })
+                  : t("dashboard.upToDate", { date: appliedToDate })
+            );
 
   function handleSort(key) {
     if (sortKey === key) {
@@ -241,7 +243,7 @@ function DashboardPage() {
 
   function handleSubmitRange() {
     if (draftFromDate && draftToDate && draftFromDate > draftToDate) {
-      setError("From date cannot be later than to date");
+      setError(t("dashboard.invalidDateRange"));
       return;
     }
 
@@ -264,25 +266,25 @@ function DashboardPage() {
             className={`dashboard-range-trigger${isFilterOpen ? " active" : ""}`}
             onClick={handleOpenFilter}
           >
-            <span className="small muted">Date Range</span>
+            <span className="small muted">{t("dashboard.dateRange")}</span>
             <strong>{rangeLabel}</strong>
           </button>
 
           {isFilterOpen && (
             <div className="dashboard-range-popover card compact">
               <div className="dashboard-filter-actions">
-                <button type="button" className={quickRange === "today" ? "dashboard-chip-btn active" : "dashboard-chip-btn"} onClick={() => applyQuickRange("today")}>Today</button>
-                <button type="button" className={quickRange === "last7" ? "dashboard-chip-btn active" : "dashboard-chip-btn"} onClick={() => applyQuickRange("last7")}>Last 7 Days</button>
-                <button type="button" className={quickRange === "thisMonth" ? "dashboard-chip-btn active" : "dashboard-chip-btn"} onClick={() => applyQuickRange("thisMonth")}>This Month</button>
-                <button type="button" className={quickRange === "all" ? "dashboard-chip-btn active" : "dashboard-chip-btn"} onClick={() => applyQuickRange("all")}>All Time</button>
+                <button type="button" className={quickRange === "today" ? "dashboard-chip-btn active" : "dashboard-chip-btn"} onClick={() => applyQuickRange("today")}>{t("dashboard.today")}</button>
+                <button type="button" className={quickRange === "last7" ? "dashboard-chip-btn active" : "dashboard-chip-btn"} onClick={() => applyQuickRange("last7")}>{t("dashboard.last7Days")}</button>
+                <button type="button" className={quickRange === "thisMonth" ? "dashboard-chip-btn active" : "dashboard-chip-btn"} onClick={() => applyQuickRange("thisMonth")}>{t("dashboard.thisMonth")}</button>
+                <button type="button" className={quickRange === "all" ? "dashboard-chip-btn active" : "dashboard-chip-btn"} onClick={() => applyQuickRange("all")}>{t("dashboard.allTime")}</button>
               </div>
               <div className="dashboard-date-fields">
                 <label className="dashboard-date-field">
-                  <span className="muted small">From</span>
+                  <span className="muted small">{t("dashboard.from")}</span>
                   <input type="date" value={draftFromDate} onChange={(event) => setDraftFromDate(event.target.value)} />
                 </label>
                 <label className="dashboard-date-field">
-                  <span className="muted small">To</span>
+                  <span className="muted small">{t("dashboard.to")}</span>
                   <input type="date" value={draftToDate} onChange={(event) => setDraftToDate(event.target.value)} />
                 </label>
               </div>
@@ -291,8 +293,8 @@ function DashboardPage() {
                   setDraftFromDate(appliedFromDate);
                   setDraftToDate(appliedToDate);
                   setIsFilterOpen(false);
-                }}>Cancel</button>
-                <button type="button" onClick={handleSubmitRange}>Submit</button>
+                }}>{t("common.cancel")}</button>
+                <button type="button" onClick={handleSubmitRange}>{t("common.submit")}</button>
               </div>
             </div>
           )}
@@ -306,45 +308,45 @@ function DashboardPage() {
         <>
           <div className="dashboard-kpi-grid">
             <StatCard
-              title="Total Sales"
+              title={t("dashboard.totalSales")}
               value={formatMetric(summary.totalSales, (value) => formatCurrency(Number(value), profile.currency, profile.locale))}
-              hint="Selected range"
+              hint={t("dashboard.selectedRange")}
             />
             <StatCard
-              title="Total Profit"
+              title={t("dashboard.totalProfit")}
               value={formatMetric(summary.totalProfit, (value) => formatCurrency(Number(value), profile.currency, profile.locale))}
-              hint="Needs cost price"
+              hint={t("dashboard.needsCostPrice")}
             />
             <StatCard
-              title="Total Quantity Sold"
+              title={t("dashboard.totalQtySold")}
               value={formatMetric(summary.totalQtySold)}
-              hint="Selected range"
+              hint={t("dashboard.selectedRange")}
             />
             <StatCard
-              title="Total Invoices"
+              title={t("dashboard.totalInvoices")}
               value={formatMetric(summary.totalInvoices)}
-              hint="Selected range"
+              hint={t("dashboard.selectedRange")}
             />
           </div>
 
           <div className="card section-gap table-enhanced-wrap dashboard-section-card">
             <div className="section-title-row">
               <div>
-                <h3>Recent Bill Details</h3>
-                <p className="muted">Retail, wholesale, and purchase order entries in one timeline.</p>
+                <h3>{t("dashboard.recentBillsTitle")}</h3>
+                <p className="muted">{t("dashboard.recentBillsSubtitle")}</p>
               </div>
             </div>
             <div className="table-toolbar">
               <input
                 className="table-search"
-                placeholder="Search by bill no, bill type, customer/supplier, payment, created by"
+                placeholder={t("dashboard.searchPlaceholder")}
                 value={searchTerm}
                 onChange={(event) => {
                   setSearchTerm(event.target.value);
                   setPage(1);
                 }}
               />
-              <p className="muted small">Showing {pagedBills.length} of {filteredSortedBills.length} records</p>
+              <p className="muted small">{t("dashboard.showingRecords", { count: pagedBills.length, total: filteredSortedBills.length })}</p>
             </div>
 
             <div className="table-scroll">
@@ -393,9 +395,9 @@ function DashboardPage() {
             </div>
 
             <div className="pagination-row">
-              <button type="button" className="ghost" disabled={currentPage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Previous</button>
-              <p className="small muted">Page {currentPage} of {totalPages}</p>
-              <button type="button" className="ghost" disabled={currentPage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</button>
+              <button type="button" className="ghost" disabled={currentPage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{t("common.previous")}</button>
+              <p className="small muted">{t("common.pageOf", { page: currentPage, total: totalPages })}</p>
+              <button type="button" className="ghost" disabled={currentPage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{t("common.next")}</button>
             </div>
           </div>
         </>

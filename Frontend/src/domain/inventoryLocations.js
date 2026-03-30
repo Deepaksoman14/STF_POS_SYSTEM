@@ -1,6 +1,6 @@
 export const INVENTORY_LOCATIONS = [
-  { code: "main_store", label: "Main Store" },
-  { code: "godown", label: "Godown" }
+  { code: "main_store", labelKey: "inventory.mainStore" },
+  { code: "godown", labelKey: "inventory.godown" }
 ];
 
 export function getLocationQty(locationStocks, code) {
@@ -8,8 +8,9 @@ export function getLocationQty(locationStocks, code) {
   return Number(row?.qty || 0);
 }
 
-export function getLocationLabel(code) {
+export function getLocationLabel(code, t) {
   const matched = INVENTORY_LOCATIONS.find((item) => item.code === code);
-  return matched?.label || code;
+  if (!matched) return code;
+  if (typeof t === "function") return t(matched.labelKey);
+  return matched.labelKey;
 }
-

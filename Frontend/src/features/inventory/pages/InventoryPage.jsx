@@ -60,7 +60,7 @@ function InventoryPage() {
         setRows(flattened);
       } catch (err) {
         if (mounted) {
-          setError(extractApiError(err, "Failed to load inventory"));
+          setError(extractApiError(err, t("inventory.failedLoad")));
         }
       } finally {
         if (mounted) {
@@ -130,14 +130,14 @@ function InventoryPage() {
           <div className="table-toolbar">
             <input
               className="table-search"
-              placeholder="Search by product, SKU, pack"
+              placeholder={t("inventory.searchPlaceholder")}
               value={searchTerm}
               onChange={(event) => {
                 setSearchTerm(event.target.value);
                 setPage(1);
               }}
             />
-            <p className="muted small">Showing {pagedRows.length} of {filteredSortedRows.length} records</p>
+            <p className="muted small">{t("inventory.showingRecords", { count: pagedRows.length, total: filteredSortedRows.length })}</p>
           </div>
 
           <div className="table-scroll">
@@ -146,9 +146,9 @@ function InventoryPage() {
                 <tr>
                   <th><button type="button" className="table-sort-btn" onClick={() => handleSort("sku")}>{t("inventory.sku")}</button></th>
                   <th><button type="button" className="table-sort-btn" onClick={() => handleSort("product")}>{t("inventory.product")}</button></th>
-                  <th><button type="button" className="table-sort-btn" onClick={() => handleSort("pack")}>Pack</button></th>
-                  <th><button type="button" className="table-sort-btn" onClick={() => handleSort("mainQty")}>Stock (Main/Godown)</button></th>
-                  <th><button type="button" className="table-sort-btn" onClick={() => handleSort("totalStock")}>Total Stock</button></th>
+                  <th><button type="button" className="table-sort-btn" onClick={() => handleSort("pack")}>{t("inventory.pack")}</button></th>
+                  <th><button type="button" className="table-sort-btn" onClick={() => handleSort("mainQty")}>{t("inventory.stockSplit")}</button></th>
+                  <th><button type="button" className="table-sort-btn" onClick={() => handleSort("totalStock")}>{t("inventory.totalStock")}</button></th>
                   <th><button type="button" className="table-sort-btn" onClick={() => handleSort("reorderLevel")}>{t("inventory.reorderLevel")}</button></th>
                 </tr>
               </thead>
@@ -168,9 +168,9 @@ function InventoryPage() {
           </div>
 
           <div className="pagination-row">
-            <button type="button" className="ghost" disabled={currentPage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Previous</button>
-            <p className="small muted">Page {currentPage} of {totalPages}</p>
-            <button type="button" className="ghost" disabled={currentPage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</button>
+            <button type="button" className="ghost" disabled={currentPage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{t("common.previous")}</button>
+            <p className="small muted">{t("common.pageOf", { page: currentPage, total: totalPages })}</p>
+            <button type="button" className="ghost" disabled={currentPage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{t("common.next")}</button>
           </div>
         </div>
       )}
