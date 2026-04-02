@@ -27,6 +27,8 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM_EMAIL: z.string().email().optional(),
+  BREVO_API_KEY: z.string().optional(),
+  BREVO_API_URL: z.string().url().default("https://api.brevo.com/v3/smtp/email"),
   ADMIN_EMAIL: z.string().email().default("somandeepak14@gmail.com")
 });
 

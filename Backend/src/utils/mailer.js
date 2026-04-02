@@ -31,12 +31,69 @@ function getTransporter() {
   return transporter;
 }
 
+async function sendViaBrevoApi({ fromEmail, requester, approveUrl }) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const response = await fetch(env.BREVO_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": env.BREVO_API_KEY
+      },
+      body: JSON.stringify({
+        sender: {
+          email: fromEmail,
+          name: "POS Platform"
+        },
+        to: [{ email: env.APPROVAL_TO_EMAIL }],
+        subject: `Approval required: ${requester.businessName}`,
+        textContent: `New signup request\nBusiness: ${requester.businessName}\nName: ${requester.fullName}\nEmail: ${requester.email}\nApprove: ${approveUrl}`,
+        htmlContent: `
+          <h2>New POS Signup Request</h2>
+          <p><strong>Business:</strong> ${requester.businessName}</p>
+          <p><strong>Name:</strong> ${requester.fullName}</p>
+          <p><strong>Email:</strong> ${requester.email}</p>
+          <p>
+            <a href="${approveUrl}" style="display:inline-block;padding:10px 14px;background:#0f766e;color:#fff;text-decoration:none;border-radius:8px;">
+              Approve Signup
+            </a>
+          </p>
+          <p>If the button does not work, use this link: ${approveUrl}</p>
+        `
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const reason = payload?.message || payload?.code || `HTTP ${response.status}`;
+      throw new ApiError(502, `Brevo API send failed: ${reason}`);
+    }
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new ApiError(502, "Brevo API timed out while sending email.");
+    }
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(502, `Brevo API send failed: ${error?.message || "Unknown error"}`);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function sendSignupApprovalEmail({ requester, approveUrl }) {
   if (!env.APPROVAL_TO_EMAIL) {
     throw new ApiError(500, "APPROVAL_TO_EMAIL is not configured");
   }
 
   const fromEmail = env.SMTP_FROM_EMAIL || env.SMTP_USER || env.APPROVAL_TO_EMAIL;
+  if (env.BREVO_API_KEY) {
+    await sendViaBrevoApi({ fromEmail, requester, approveUrl });
+    return;
+  }
 
   try {
     await getTransporter().sendMail({
