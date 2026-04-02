@@ -25,6 +25,8 @@
 - `SMTP_USER` (optional if SMTP relay is open)
 - `SMTP_PASS` (optional if SMTP relay is open)
 - `SMTP_FROM_EMAIL` (optional)
+- `BREVO_API_KEY` (optional; if set, Brevo API is used instead of SMTP)
+- `BREVO_API_URL` (optional; default: `https://api.brevo.com/v3/smtp/email`)
 - `FRONTEND_BASE_URL` (default: `http://localhost:5173`)
 - `BACKEND_PUBLIC_URL` (default: `http://localhost:5000`)
 
