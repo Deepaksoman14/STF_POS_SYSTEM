@@ -36,6 +36,17 @@ function formatMetric(value, formatter) {
   return formatter ? formatter(value) : String(value);
 }
 
+function formatQuantity(value) {
+  const numeric = Number(value || 0);
+  if (Number.isNaN(numeric)) return "0";
+  return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function formatPackLabel(unitSize, unitType) {
+  if (!unitSize && !unitType) return "";
+  return `${unitSize || ""}${unitType || ""}`.trim();
+}
+
 function DashboardPage() {
   const profile = getBusinessProfile();
   const { t, language } = useI18n();
@@ -194,6 +205,59 @@ function DashboardPage() {
                   : t("dashboard.upToDate", { date: appliedToDate })
             );
 
+  const totalSalesValue = Number(summary?.totalSales || 0);
+  const totalProfitValue = Number(summary?.totalProfit || 0);
+  const retailSalesValue = Number(summary?.salesProfitBreakdown?.retailSales || 0);
+  const wholesaleSalesValue = Number(summary?.salesProfitBreakdown?.wholesaleSales || 0);
+  const retailProfitValue = Number(summary?.salesProfitBreakdown?.retailProfit || 0);
+  const wholesaleProfitValue = Number(summary?.salesProfitBreakdown?.wholesaleProfit || 0);
+  const totalQtyValue = Number(summary?.totalQtySold || 0);
+  const totalInvoicesValue = Number(summary?.totalInvoices || 0);
+  const retailInvoices = Number(summary?.invoiceBreakdown?.retail || 0);
+  const wholesaleInvoices = Number(summary?.invoiceBreakdown?.wholesale || 0);
+  const purchaseInvoices = Number(summary?.invoiceBreakdown?.purchaseOrder || 0);
+  const totalInvoicesAllTypes = retailInvoices + wholesaleInvoices + purchaseInvoices || totalInvoicesValue;
+  const lowStockCount = Number(summary?.lowStockItems || 0);
+  const qtyBreakdown = Array.isArray(summary?.qtyBreakdown) ? summary.qtyBreakdown : [];
+  const qtyBreakdownItems = qtyBreakdown.map((entry) => {
+    const pack = formatPackLabel(entry.unitSize, entry.unitType);
+    return {
+      label: pack ? `${entry.productName} (${pack})` : `${entry.productName}`,
+      value: formatQuantity(entry.qtySold)
+    };
+  });
+  const invoiceBreakdownItems = [
+    { label: t("dashboard.invoiceRetailLabel"), value: String(retailInvoices) },
+    { label: t("dashboard.invoiceWholesaleLabel"), value: String(wholesaleInvoices) },
+    { label: t("dashboard.invoicePurchaseLabel"), value: String(purchaseInvoices) }
+  ];
+  const lowStockVariants = Array.isArray(summary?.lowStockVariants) ? summary.lowStockVariants : [];
+  const lowStockItems = lowStockVariants.map((entry) => {
+    const pack = formatPackLabel(entry.unitSize, entry.unitType);
+    return {
+      label: pack ? `${entry.productName} (${pack})` : `${entry.productName}`,
+      value: formatQuantity(entry.stockQty)
+    };
+  });
+  const salesProfitSections = [
+    {
+      title: t("dashboard.retailHeading"),
+      layout: "pair",
+      items: [
+        { label: t("dashboard.salesLabel"), value: formatCurrency(retailSalesValue, profile.currency, profile.locale) },
+        { label: t("dashboard.profitLabel"), value: formatCurrency(retailProfitValue, profile.currency, profile.locale) }
+      ]
+    },
+    {
+      title: t("dashboard.wholesaleHeading"),
+      layout: "pair",
+      items: [
+        { label: t("dashboard.salesLabel"), value: formatCurrency(wholesaleSalesValue, profile.currency, profile.locale) },
+        { label: t("dashboard.profitLabel"), value: formatCurrency(wholesaleProfitValue, profile.currency, profile.locale) }
+      ]
+    }
+  ];
+
   function handleSort(key) {
     if (sortKey === key) {
       setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -309,23 +373,32 @@ function DashboardPage() {
           <div className="dashboard-kpi-grid">
             <StatCard
               title={t("dashboard.totalSales")}
-              value={formatMetric(summary.totalSales, (value) => formatCurrency(Number(value), profile.currency, profile.locale))}
-              hint={t("dashboard.selectedRange")}
+              value={formatCurrency(totalSalesValue, profile.currency, profile.locale)}
+              hint={t("dashboard.profitValue", {
+                value: formatCurrency(totalProfitValue, profile.currency, profile.locale)
+              })}
+              hoverTitle={t("dashboard.salesProfitBreakdownTitle")}
+              hoverSections={salesProfitSections}
             />
             <StatCard
-              title={t("dashboard.totalProfit")}
-              value={formatMetric(summary.totalProfit, (value) => formatCurrency(Number(value), profile.currency, profile.locale))}
-              hint={t("dashboard.needsCostPrice")}
-            />
-            <StatCard
-              title={t("dashboard.totalQtySold")}
-              value={formatMetric(summary.totalQtySold)}
-              hint={t("dashboard.selectedRange")}
+              title={t("dashboard.qtySoldWithUnit")}
+              value={formatMetric(totalQtyValue)}
+              hint={t("dashboard.qtySoldHint")}
+              hoverTitle={t("dashboard.qtyBreakdownTitle")}
+              hoverItems={qtyBreakdownItems.length ? qtyBreakdownItems : [{ label: t("dashboard.noDetails"), value: "" }]}
             />
             <StatCard
               title={t("dashboard.totalInvoices")}
-              value={formatMetric(summary.totalInvoices)}
+              value={formatMetric(totalInvoicesAllTypes)}
               hint={t("dashboard.selectedRange")}
+              hoverTitle={t("dashboard.invoiceBreakdownTitle")}
+              hoverItems={invoiceBreakdownItems}
+            />
+            <StatCard
+              title={t("dashboard.lowStockItems")}
+              value={formatMetric(lowStockCount)}
+              hoverTitle={t("dashboard.lowStockTitle")}
+              hoverItems={lowStockItems.length ? lowStockItems : [{ label: t("dashboard.lowStockNone"), value: "" }]}
             />
           </div>
 
