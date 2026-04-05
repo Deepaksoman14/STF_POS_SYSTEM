@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { fetchBusinesses } from "../../api/userApi";
+import { fetchCurrentPrintTemplate } from "../../api/printTemplateApi";
 import { useAuthStore } from "../../store/authStore";
 import { getBusinessProfile } from "../../utils/formatters";
 import { canAccess, routeConfig } from "../../app/permissions";
@@ -10,6 +11,8 @@ const IMPERSONATION_ID_KEY = "impersonationBusinessId";
 const IMPERSONATION_NAME_KEY = "impersonationBusinessName";
 const IMPERSONATION_PROFILE_KEY = "impersonationBusinessProfileId";
 const COPYRIGHT_TEXT = `Copyright © ${new Date().getFullYear()} Soman Tech Foundry. All rights reserved.`;
+const APP_BRAND_NAME = "SellthruBOS";
+const APP_COMPANY_NAME = "STF - Soman Tech Foundry";
 
 function AppLayout({ children }) {
   const { user, logout } = useAuthStore();
@@ -21,6 +24,7 @@ function AppLayout({ children }) {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [now, setNow] = useState(new Date());
+  const [billProfileInfo, setBillProfileInfo] = useState({ businessName: "", businessDescription: "" });
   const [businesses, setBusinesses] = useState([]);
   const [impersonationId, setImpersonationId] = useState(localStorage.getItem(IMPERSONATION_ID_KEY) || "");
   const [impersonationName, setImpersonationName] = useState(localStorage.getItem(IMPERSONATION_NAME_KEY) || "");
@@ -31,6 +35,30 @@ function AppLayout({ children }) {
     const timer = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadBranding() {
+      try {
+        const current = await fetchCurrentPrintTemplate();
+        if (!active) return;
+        const bp = current?.billProfile || {};
+        setBillProfileInfo({
+          businessName: String(bp.businessName || "").trim(),
+          businessDescription: String(bp.businessDescription || "").trim()
+        });
+      } catch {
+        if (!active) return;
+        setBillProfileInfo({ businessName: "", businessDescription: "" });
+      }
+    }
+
+    loadBranding();
+    return () => {
+      active = false;
+    };
+  }, [isAdmin, impersonationId]);
 
   useEffect(() => {
     function handleOutsideClick(event) {
@@ -82,6 +110,8 @@ function AppLayout({ children }) {
   }, [isAdmin]);
 
   const effectiveBusinessName = isAdmin && impersonationName ? impersonationName : (user?.businessName || profile.name);
+  const topbarBusinessName = billProfileInfo.businessName || effectiveBusinessName;
+  const topbarBusinessDescription = billProfileInfo.businessDescription || profile.name;
 
   const ownerName = user?.name || t("layout.userFallback");
   const ownerInitial = ownerName.charAt(0).toUpperCase();
@@ -145,9 +175,11 @@ function AppLayout({ children }) {
     <div className="shell">
       <aside className="sidebar">
         <div className="brand-block">
-          <span className="brand-chip">{t("layout.enterprise")}</span>
-          <h1>POS Core</h1>
-          <p className="muted">{profile.name}</p>
+          <div className="app-brand-lockup">
+            <h1 className="sbo-brand-title">{APP_BRAND_NAME}</h1>
+            <span className="brand-chip sbo-brand-subtitle">{APP_COMPANY_NAME}</span>
+          </div>
+          <p className="muted small">{profile.name}</p>
         </div>
 
         <nav>
@@ -165,6 +197,11 @@ function AppLayout({ children }) {
       <main className="content">
         <header className="topbar card simple-topbar">
           <div className="topbar-fill">
+            <div className="topbar-client-heading">
+              <h2>{topbarBusinessName}</h2>
+              <p className="topbar-client-description">{topbarBusinessDescription}</p>
+            </div>
+
             <div className="topbar-brand-fill">
               <div className="brand-logo-mark">{businessInitials || "BS"}</div>
               <div className="brand-fill-text">
@@ -222,5 +259,3 @@ function AppLayout({ children }) {
 }
 
 export default AppLayout;
-
-

@@ -7,6 +7,8 @@ import { useAuthStore } from "../../../store/authStore";
 
 const ADMIN_EMAIL = "somandeepak14@gmail.com";
 const COPYRIGHT_TEXT = `Copyright © ${new Date().getFullYear()} Soman Tech Foundry. All rights reserved.`;
+const APP_BRAND_NAME = "SellthruBOS";
+const APP_COMPANY_NAME = "STF - Soman Tech Foundry";
 
 const initialForm = {
   businessName: "",
@@ -53,70 +55,85 @@ function RegisterPage() {
   }
 
   return (
-    <div className="centered">
-      <form className="card" onSubmit={handleSubmit}>
-        <h2>{t("auth.registerTitle")}</h2>
-        <p className="muted">{t("auth.registerSubtitle")}</p>
-
-        <label>{t("auth.email")}</label>
-        <input
-          type="email"
-          value={form.email}
-          onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-          required
-        />
-
-        {isAdminSignup && (
-          <div className="card compact">
-            <strong>{t("auth.adminNoticeTitle")}</strong>
-            <p className="muted small">{t("auth.adminNoticeBody")}</p>
+    <div className="landing-page sbo-landing auth-screen">
+      <header className="landing-header sbo-header sbo-header-minimal">
+        <div className="sbo-header-inner">
+          <div className="sbo-header-left">
+            <Link to="/" className="landing-brand sbo-brand-link" aria-label="Go to home page">
+              <h1 className="sbo-brand-title">{APP_BRAND_NAME}</h1>
+              <span className="brand-chip sbo-brand-subtitle">{APP_COMPANY_NAME}</span>
+            </Link>
           </div>
-        )}
+          <div className="landing-auth-actions sbo-header-auth">
+            <Link to="/login" className="landing-link-btn outline">{t("auth.signIn")}</Link>
+            <Link to="/register" className="landing-link-btn primary">{t("auth.createOwner")}</Link>
+          </div>
+        </div>
+      </header>
 
-        <label>{t("auth.businessProfile")}</label>
-        <select
-          value={form.businessProfileId}
-          onChange={(event) => setForm((prev) => ({ ...prev, businessProfileId: event.target.value }))}
-          disabled={isAdminSignup}
-        >
-          {Object.entries(businessProfiles).map(([key, profile]) => (
-            <option key={key} value={key}>{profile.name}</option>
-          ))}
-        </select>
+      <main className="auth-main">
+        <form className="card auth-form-card" onSubmit={handleSubmit}>
+          <h2>{t("auth.registerTitle")}</h2>
+          <p className="muted">{t("auth.registerSubtitle")}</p>
 
-        <label>{t("auth.businessName")}</label>
-        <input
-          value={form.businessName}
-          onChange={(e) => setForm((prev) => ({ ...prev, businessName: e.target.value }))}
-          required
-        />
+          <label>{t("auth.email")}</label>
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+            required
+          />
 
-        <label>{t("auth.ownerName")}</label>
-        <input
-          value={form.fullName}
-          onChange={(e) => setForm((prev) => ({ ...prev, fullName: e.target.value }))}
-          required
-        />
+          {isAdminSignup && (
+            <div className="card compact">
+              <strong>{t("auth.adminNoticeTitle")}</strong>
+              <p className="muted small">{t("auth.adminNoticeBody")}</p>
+            </div>
+          )}
 
-        <label>{t("auth.password")}</label>
-        <input
-          type="password"
-          minLength="6"
-          value={form.password}
-          onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-          required
-        />
+          <label>{t("auth.businessProfile")}</label>
+          <select
+            value={form.businessProfileId}
+            onChange={(event) => setForm((prev) => ({ ...prev, businessProfileId: event.target.value }))}
+            disabled={isAdminSignup}
+          >
+            {Object.entries(businessProfiles).map(([key, profile]) => (
+              <option key={key} value={key}>{profile.name}</option>
+            ))}
+          </select>
 
-        {error && <p className="error-text">{error}</p>}
-        {success && <p className="success-text">{success}</p>}
-        <button type="submit" disabled={loading}>{loading ? t("auth.creating") : t("auth.createAccount")}</button>
-        <p className="auth-switch">{t("auth.alreadyHaveAccount")} <Link to="/login">{t("common.signIn")}</Link></p>
-        <p className="app-copyright auth-copy">{COPYRIGHT_TEXT}</p>
-      </form>
+          <label>{t("auth.businessName")}</label>
+          <input
+            value={form.businessName}
+            onChange={(e) => setForm((prev) => ({ ...prev, businessName: e.target.value }))}
+            required
+          />
+
+          <label>{t("auth.ownerName")}</label>
+          <input
+            value={form.fullName}
+            onChange={(e) => setForm((prev) => ({ ...prev, fullName: e.target.value }))}
+            required
+          />
+
+          <label>{t("auth.password")}</label>
+          <input
+            type="password"
+            minLength="6"
+            value={form.password}
+            onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+            required
+          />
+
+          {error && <p className="error-text">{error}</p>}
+          {success && <p className="success-text">{success}</p>}
+          <button type="submit" disabled={loading}>{loading ? t("auth.creating") : t("auth.createAccount")}</button>
+          <p className="auth-switch">{t("auth.alreadyHaveAccount")} <Link to="/login">{t("common.signIn")}</Link></p>
+          <p className="app-copyright auth-copy">{COPYRIGHT_TEXT}</p>
+        </form>
+      </main>
     </div>
   );
 }
 
 export default RegisterPage;
-
-
