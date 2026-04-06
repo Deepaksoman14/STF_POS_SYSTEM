@@ -2,7 +2,8 @@ import pg from "pg";
 import env from "../config/env.js";
 
 const { Pool } = pg;
-const useSsl = env.DB_SSL || env.NODE_ENV === "production";
+const shouldUseSslFromUrl = /sslmode=require/i.test(env.DATABASE_URL || "");
+const useSsl = env.DB_SSL || shouldUseSslFromUrl;
 
 export const pool = new Pool({
   connectionString: env.DATABASE_URL,
